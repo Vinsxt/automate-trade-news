@@ -42,5 +42,9 @@ export async function fetchComtradePreview(
   }
 
   const payload: unknown = await response.json();
-  return comtradeResponseSchema.parse(payload);
+  const parsed = comtradeResponseSchema.parse(payload);
+  if (parsed.error) {
+    throw new ComtradeRequestError("UN Comtrade returned an API error", response.status);
+  }
+  return parsed;
 }
