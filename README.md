@@ -41,7 +41,20 @@ npm run build
 
 The current foundation contains the Next.js App Router, TypeScript,
 Tailwind CSS, and the approved Supabase, Gemini, validation, chart, and
-icon dependencies. The database schema and ingestion client will be
-added after the actual UN Comtrade response shape is verified.
+icon dependencies. The first data slice targets India (reporter 699)
+and HS 854142 (photovoltaic cells not assembled into modules), using
+destination-reported imports by partner for 2021--2025. It stores
+validated observations and ingestion-run metadata in Supabase.
+
+During development, trigger the restricted ingestion route with:
+
+```bash
+curl -X POST http://localhost:3000/api/admin/ingest \
+  -H "Authorization: Bearer $INGEST_ADMIN_TOKEN"
+```
+
+The route requires `INGEST_ADMIN_TOKEN`, Supabase service-role
+credentials, and server-side access to the UN Comtrade API. Never expose
+these values to browser code or commit `.env.local`.
 
 Never commit `.env.local` or any API keys.
