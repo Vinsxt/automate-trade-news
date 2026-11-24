@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildObservationKey, normalizeComtradeResponse } from "./normalize";
+import { buildObservationKey, normalizeComtradeResponse, normalizePilotResponse } from "./normalize";
 
 const record = {
   typeCode: "C",
@@ -67,4 +67,13 @@ test("observation keys distinguish source dimensions", () => {
 
   assert.notEqual(buildObservationKey(record), buildObservationKey({ ...record, partnerCode: 156 }));
   assert.notEqual(first.observationKey, second.observationKey);
+});
+
+test("rejects an import batch that mixes HS editions or periods", () => {
+  assert.equal(normalizePilotResponse({ count: 1, data: [record] }, "2025").length, 1);
+  assert.throws(() => normalizePilotResponse({
+    count: 2,
+    data: [record, { ...record, classificationCode: "H5" }],
+  }, "2025"), /outside the pilot query/);
+  assert.throws(() => normalizePilotResponse({ count: 1, data: [record] }, "2024"), /outside the pilot query/);
 });
