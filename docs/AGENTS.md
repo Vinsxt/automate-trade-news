@@ -43,11 +43,23 @@ product scope, schema semantics, or calculation definitions.
 - Authorize admin operations server-side and rate-limit costly public operations.
   Keep the Supabase service-role key and provider keys server-only, enforce RLS on
   user-owned tables, and keep client and privileged Supabase access separate.
-- Keep `.env.local` untracked and `.env.example` limited to placeholders. Keep secrets,
-  raw upstream errors, sensitive headers, and stack traces out of client responses
+- Keep raw upstream errors, sensitive headers, and stack traces out of client responses
   and logs. Limit collection of personal information.
 - Prefer existing modules and dependencies. Validate external payloads, make small
   focused changes, and test analytics edge cases, upstream validation, and retry
   behavior when relevant.
 - Run `npm test`, `npm run lint`, `npm run typecheck`, and `npm run build` as relevant.
   Report the checks actually run, along with any live integrations still unverified.
+
+
+## Secrets and Security
+
+- Never print, expose, or log environment variable values.
+- Never read or display the contents of `.env.local` directly.
+- Environment variables may be loaded at runtime for legitimate application execution
+  and integration testing.
+- Never transmit secrets to unauthorized external services.
+- Never commit environment files or credentials to Git. The tracked `.env.example`
+  contains placeholders only.
+- Verify environment variable availability using boolean checks rather than printing
+  their values.
