@@ -72,3 +72,17 @@ test("calculates supplier rank and value changes and flags only threshold crossi
   ]);
   assert.deepEqual(summary.movements.get("2023"), []);
 });
+
+test("publishes observed supplier unit values and bounds shares by the World total", () => {
+  const rows = [
+    { period: "2025", partner_code: 0, partner_iso: null, primary_value: 100 },
+    { period: "2025", partner_code: 360, partner_iso: "IDN", primary_value: 20, net_weight: 5, is_net_wgt_estimated: false },
+    { period: "2025", partner_code: 156, partner_iso: "CHN", primary_value: 40, net_weight: 20, is_net_wgt_estimated: false },
+    { period: "2025", partner_code: 392, partner_iso: "JPN", primary_value: 150, net_weight: 20, is_net_wgt_estimated: true },
+  ];
+  const results = calculateTradeSummary(rows).supplierYears.get("2025")!;
+  assert.equal(results[0].marketSharePct, null);
+  assert.equal(results[0].unitValueUsdPerKg, null);
+  assert.equal(results[1].unitValueUsdPerKg, 2);
+  assert.equal(results[1].indonesiaUnitValueGapPct, 100);
+});

@@ -5,7 +5,7 @@ import type { PilotSnapshotObservation } from "@/lib/trade/snapshot";
 export async function readPilotObservations(supabase: ReturnType<typeof createSupabaseAdminClient>) {
   const { data, count, error } = await supabase
     .from("trade_observations")
-    .select("observation_key,ingestion_run_id,retrieved_at,period,partner_code,partner_iso,primary_value,net_weight,is_reported,is_aggregate", { count: "exact" })
+    .select("observation_key,ingestion_run_id,retrieved_at,period,partner_code,partner_iso,primary_value,net_weight,is_net_wgt_estimated,is_reported,is_aggregate", { count: "exact" })
     .eq("reporter_code", PILOT_QUERY.reporterCode)
     .eq("type_code", "C")
     .eq("frequency_code", "A")

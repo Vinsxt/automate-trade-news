@@ -29,6 +29,7 @@ export function buildPilotSnapshot(rows: PilotSnapshotObservation[]) {
       partner_iso: row.partner_iso,
       primary_value: row.primary_value,
       net_weight: row.net_weight,
+      is_net_wgt_estimated: row.is_net_wgt_estimated,
       is_reported: row.is_reported,
       is_aggregate: row.is_aggregate,
     };
@@ -37,7 +38,7 @@ export function buildPilotSnapshot(rows: PilotSnapshotObservation[]) {
   const { imports, supplierYears, movements } = calculateTradeSummary(observations);
   const payload = {
     schemaVersion: 1,
-    calculationVersion: "pilot-v1",
+    calculationVersion: "pilot-v2",
     query: PILOT_QUERY,
     movementThresholds: MOVEMENT_THRESHOLDS,
     input: {

@@ -14,6 +14,7 @@ function observation(period: string, partner: number, value: number | null): Pil
     partner_iso: partner === 360 ? "IDN" : null,
     primary_value: value,
     net_weight: null,
+    is_net_wgt_estimated: null,
     is_reported: true,
     is_aggregate: partner === 0,
   };

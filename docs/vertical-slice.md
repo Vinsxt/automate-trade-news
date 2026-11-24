@@ -72,3 +72,7 @@ snapshot ID stays the same for identical inputs and calculations.
   failed or throttled request.
 - The current reader serves precomputed pilot metrics. Cached explanations
   are planned for Phase 4.
+- The pilot snapshot includes supplier unit values in USD per kilogram and
+  Indonesia’s gap against each comparable supplier. Missing or estimated weights
+  leave the comparison unavailable. The pilot is a single destination, so a
+  ranked shortlist requires a separate multi-market cohort.
