@@ -61,7 +61,7 @@ export async function ingestPilotData(
 }
 
 export async function ingestAnnualImports(
-  query: { reporterCode: number; cmdCode: string; periods: string[] },
+  query: { reporterCode: number; cmdCode: string; periods: string[]; acceptOtherEditions?: boolean },
   fetchSlice: typeof fetchComtradePreview,
 ): Promise<IngestionResult> {
   const { periods } = query;
@@ -72,7 +72,7 @@ export async function ingestAnnualImports(
     .insert({
       source: "UN_COMTRADE",
       status: "RUNNING",
-      query: { ...query, flowCode: "M", classificationCode: "H6" },
+      query: { ...query, flowCode: "M", classificationCode: query.acceptOtherEditions ? "HS" : "H6" },
       started_at: retrievedAt,
     })
     .select("id")
@@ -90,7 +90,7 @@ export async function ingestAnnualImports(
       const slice = { reporterCode: query.reporterCode, cmdCode: query.cmdCode, period };
       const response = await fetchSlice({ ...slice, flowCode: "M" });
       recordsReceived += response.data.length;
-      const observations = normalizeAnnualImports(response, slice);
+      const observations = normalizeAnnualImports(response, { ...slice, acceptOtherEditions: query.acceptOtherEditions });
 
       if (observations.length === 0) {
         continue;

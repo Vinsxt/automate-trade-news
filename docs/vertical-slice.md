@@ -99,3 +99,15 @@ snapshot ID so a newer publication cannot change the evidence mid-review.
 Run `supabase/tests/ranked_snapshot_publication.sql` against a disposable
 database to verify that readers see published details only and that a failed
 publication exposes no partial results.
+
+### Backfill the remaining catalog
+
+Apply the storage-measurement migration before running `npm run backfill:ranked`.
+It groups missing products by reporter and year for the registered Comtrade API.
+Each completed slice still has its own ingestion run. If a grouped response hits
+its row limit, the runner splits the request. Reruns skip completed slices.
+
+The operator measures database size before every group and each ranked publication.
+A 145 MB stop leaves headroom below 30% of the 500 MB Free allowance. Comtrade
+attempt and row budgets still apply. Source rows returned under a different HS
+edition can be retained privately and cannot qualify as HS 2022 ranking evidence.

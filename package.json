@@ -12,7 +12,8 @@
     "test": "tsx --test src/**/*.test.ts",
     "ingest:trade": "node --env-file-if-exists=.env.local --import tsx scripts/ingest-trade.ts",
     "publish:pilot": "node --env-file-if-exists=.env.local --import tsx scripts/publish-pilot.ts",
-    "publish:ranked": "node --env-file-if-exists=.env.local --import tsx scripts/publish-ranked.ts"
+    "publish:ranked": "node --env-file-if-exists=.env.local --import tsx scripts/publish-ranked.ts",
+    "backfill:ranked": "node --env-file-if-exists=.env.local --import tsx scripts/backfill-ranked.ts"
   },
   "dependencies": {
     "@google/genai": "^3.6.1",

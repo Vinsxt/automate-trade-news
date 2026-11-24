@@ -11,6 +11,17 @@ export async function fetchComtradeFinal(
   fetchImpl: typeof fetch = fetch,
   wait: (milliseconds: number) => Promise<void> = sleep,
 ) {
+  return fetchComtradeFinalGroup(query, [query.cmdCode], reserveAttempt, fetchImpl, wait);
+}
+
+export async function fetchComtradeFinalGroup(
+  query: Omit<ComtradePreviewQuery, "cmdCode">,
+  products: readonly string[],
+  reserveAttempt: () => Promise<void>,
+  fetchImpl: typeof fetch = fetch,
+  wait: (milliseconds: number) => Promise<void> = sleep,
+) {
+  const rowLimit = products.length === 1 ? limit : 2500;
   const key = process.env.COMTRADE_API_KEY?.trim();
   if (!key) throw new ComtradeRequestError("Configure a registered COMTRADE_API_KEY");
 
@@ -18,12 +29,12 @@ export async function fetchComtradeFinal(
   url.search = new URLSearchParams({
     reporterCode: String(query.reporterCode),
     period: query.period,
-    cmdCode: query.cmdCode,
+    cmdCode: products.join(","),
     flowCode: query.flowCode,
     partner2Code: "0",
     customsCode: "C00",
     motCode: "0",
-    maxRecords: String(limit),
+    maxRecords: String(rowLimit),
     "subscription-key": key,
   }).toString();
 
@@ -39,11 +50,15 @@ export async function fetchComtradeFinal(
     if (response?.ok) {
       const payload = comtradeResponseSchema.parse(await response.json());
       if (payload.error) throw new ComtradeRequestError("UN Comtrade returned an API error");
-      if (payload.count !== payload.data.length || payload.data.length >= limit) {
+      if (payload.count !== payload.data.length || payload.data.length >= rowLimit) {
         throw new ComtradeRequestError("UN Comtrade slice is incomplete or reached its row limit");
       }
       if (payload.data.some((row) => row.partner2Code !== 0 || row.customsCode !== "C00" || row.motCode !== 0 || row.mosCode !== "0")) {
         throw new ComtradeRequestError("UN Comtrade returned unexpected aggregation dimensions");
+      }
+      if (payload.data.some((row) => !products.includes(row.cmdCode) || row.reporterCode !== query.reporterCode ||
+        row.period !== query.period || row.flowCode !== query.flowCode || row.typeCode !== "C" || row.freqCode !== "A")) {
+        throw new ComtradeRequestError("UN Comtrade returned rows outside the requested cohort");
       }
       return payload;
     }

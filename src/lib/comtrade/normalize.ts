@@ -73,10 +73,10 @@ export function normalizePilotResponse(response: ComtradeResponse, period: strin
 
 export function normalizeAnnualImports(
   response: ComtradeResponse,
-  query: { reporterCode: number; cmdCode: string; period: string },
+  query: { reporterCode: number; cmdCode: string; period: string; acceptOtherEditions?: boolean },
 ): TradeObservation[] {
   if (response.data.some((row) =>
-    row.classificationCode !== PILOT_QUERY.classificationCode ||
+    (!query.acceptOtherEditions && row.classificationCode !== PILOT_QUERY.classificationCode) ||
     row.classificationSearchCode !== PILOT_QUERY.classificationSearchCode ||
     row.reporterCode !== query.reporterCode ||
     row.cmdCode !== query.cmdCode ||
