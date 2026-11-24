@@ -8,7 +8,10 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/**/*.test.ts"
+    "snapshot:pilot": "node --env-file-if-exists=.env.local --import tsx scripts/snapshot-pilot.ts",
+    "test": "tsx --test src/**/*.test.ts",
+    "ingest:trade": "node --env-file-if-exists=.env.local --import tsx scripts/ingest-trade.ts",
+    "publish:pilot": "node --env-file-if-exists=.env.local --import tsx scripts/publish-pilot.ts"
   },
   "dependencies": {
     "@google/genai": "^3.6.1",

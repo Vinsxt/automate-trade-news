@@ -130,7 +130,7 @@ export function TradeDashboard({ dashboard }: { dashboard: PilotDashboardData })
           <div className="mt-5 grid min-h-56 place-items-center border border-dashed border-stone-300 bg-stone-50 px-6 text-center">
             <div>
               <p className="font-medium text-stone-800">No annual records loaded</p>
-              <p className="mt-1 text-sm text-stone-500">Choose another year range or retrieve a year in Data operations.</p>
+              <p className="mt-1 text-sm text-stone-500">Choose another year range or check again when a new snapshot is published.</p>
             </div>
           </div>
         )}
@@ -218,8 +218,8 @@ export function TradeDashboard({ dashboard }: { dashboard: PilotDashboardData })
         <article className="border border-stone-300 bg-white p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Data coverage</p>
           <p className="mt-2 text-sm leading-6 text-stone-700">
-            {dashboard.observationCount} source rows in this period range. {dashboard.lastRun?.completed_at
-              ? `Last retrieval ${new Date(dashboard.lastRun.completed_at).toLocaleString("en-US", { dateStyle: "medium" })}; run ${dashboard.lastRun.status.toLowerCase()}.`
+            {dashboard.observationCount} source rows in this period range. {dashboard.publishedAt
+              ? `Snapshot published ${new Date(dashboard.publishedAt).toLocaleDateString("en-US", { dateStyle: "medium", timeZone: "UTC" })}.`
               : "No completed retrieval is recorded yet."}
           </p>
           <p className="mt-2 text-xs leading-5 text-stone-500">Source flags: isReported=false on {dashboard.sourceFlags.notReported} rows; isAggregate=true on {dashboard.sourceFlags.aggregate} rows.</p>

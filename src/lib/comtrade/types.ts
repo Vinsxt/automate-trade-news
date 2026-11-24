@@ -54,7 +54,7 @@ export const comtradeResponseSchema = z.object({
   elapsedTime: z.string().optional(),
   count: z.number(),
   data: z.array(comtradeRecordSchema),
-  error: z.string().optional(),
+  error: z.string().nullish(),
 });
 
 export type ComtradeRecord = z.infer<typeof comtradeRecordSchema>;

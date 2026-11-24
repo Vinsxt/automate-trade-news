@@ -1,5 +1,5 @@
-import { fetchComtradePreview } from "./client";
-import { normalizePilotResponse } from "./normalize";
+import { ComtradeRequestError, fetchComtradePreview } from "./client";
+import { normalizeAnnualImports } from "./normalize";
 import { PILOT_QUERY } from "../trade/pilot";
 import type { TradeObservation } from "./types";
 import { createSupabaseAdminClient } from "../supabase/admin";
@@ -57,6 +57,14 @@ function toDatabaseRow(observation: TradeObservation, ingestionRunId: string, re
 export async function ingestPilotData(
   periods: string[] = [...PILOT_QUERY.periods],
 ): Promise<IngestionResult> {
+  return ingestAnnualImports({ ...PILOT_QUERY, periods }, fetchComtradePreview);
+}
+
+export async function ingestAnnualImports(
+  query: { reporterCode: number; cmdCode: string; periods: string[] },
+  fetchSlice: typeof fetchComtradePreview,
+): Promise<IngestionResult> {
+  const { periods } = query;
   const supabase = createSupabaseAdminClient();
   const retrievedAt = new Date().toISOString();
   const { data: run, error: runError } = await supabase
@@ -64,7 +72,7 @@ export async function ingestPilotData(
     .insert({
       source: "UN_COMTRADE",
       status: "RUNNING",
-      query: { ...PILOT_QUERY, periods },
+      query: { ...query, flowCode: "M", classificationCode: "H6" },
       started_at: retrievedAt,
     })
     .select("id")
@@ -79,14 +87,10 @@ export async function ingestPilotData(
 
   try {
     for (const period of periods) {
-      const response = await fetchComtradePreview({
-        reporterCode: PILOT_QUERY.reporterCode,
-        period,
-        cmdCode: PILOT_QUERY.cmdCode,
-        flowCode: PILOT_QUERY.flowCode,
-      });
+      const slice = { reporterCode: query.reporterCode, cmdCode: query.cmdCode, period };
+      const response = await fetchSlice({ ...slice, flowCode: "M" });
       recordsReceived += response.data.length;
-      const observations = normalizePilotResponse(response, period);
+      const observations = normalizeAnnualImports(response, slice);
 
       if (observations.length === 0) {
         continue;
@@ -129,7 +133,9 @@ export async function ingestPilotData(
         completed_at: new Date().toISOString(),
         records_received: recordsReceived,
         records_written: recordsWritten,
-        error_message: error instanceof Error ? error.message : "Unknown ingestion error",
+        error_message: error instanceof ComtradeRequestError
+          ? error.message
+          : "Could not validate or persist trade observations",
       })
       .eq("id", run.id);
     throw error;

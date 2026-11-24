@@ -28,7 +28,7 @@ export interface SupplierYear {
 
 export const MOVEMENT_THRESHOLDS = { importValuePct: 20, supplierSharePp: 5 } as const;
 
-type Movement =
+export type Movement =
   | { kind: "import_value"; change: number }
   | { kind: "supplier_share"; change: number; partnerCode: number; partnerIso: string | null };
 

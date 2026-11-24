@@ -1,11 +1,10 @@
 import { Suspense } from "react";
 
-import { ImportControls } from "@/components/import-controls";
 import { TradeDashboard } from "@/components/trade-dashboard";
 import { TradeSelection } from "@/components/trade-selection";
 import { PILOT_QUERY } from "@/lib/trade/pilot";
 import { tradeSelectionSchema, type TradeSelection as Selection } from "@/lib/validations/trade-selection";
-import { SupabaseConfigurationError } from "@/lib/supabase/admin";
+import { SupabaseReaderConfigurationError } from "@/lib/supabase/reader";
 import { getPilotDashboardData, type PilotDashboardData } from "@/lib/trade/dashboard";
 
 async function loadDashboard(selection: Selection): Promise<
@@ -15,7 +14,7 @@ async function loadDashboard(selection: Selection): Promise<
   try {
     return { data: await getPilotDashboardData(selection), unavailable: false };
   } catch (error) {
-    return { data: null, unavailable: error instanceof SupabaseConfigurationError };
+    return { data: null, unavailable: error instanceof SupabaseReaderConfigurationError };
   }
 }
 
@@ -26,12 +25,11 @@ async function DashboardContent({ searchParams }: { searchParams: SearchParams }
   const selection = parsed.success ? parsed.data : {};
   const result = await loadDashboard(selection);
   const error = parsed.success ? undefined : "Choose the supported product and market. The start year must be on or before the end year.";
-  const latestExplainablePeriod = result.data?.imports.findLast(({ importValue }) => importValue !== null)?.period ?? null;
 
   return (
     <>
       <TradeSelection selection={selection} availablePeriods={result.data?.availablePeriods ?? []} error={error} />
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-6">
         <div className="min-w-0 space-y-6">
           {result.data ? <TradeDashboard dashboard={result.data} /> : (
             <section className="border border-amber-300 bg-amber-50 p-6" role="status">
@@ -40,7 +38,6 @@ async function DashboardContent({ searchParams }: { searchParams: SearchParams }
             </section>
           )}
         </div>
-        <ImportControls key={latestExplainablePeriod ?? "unavailable"} explanationPeriod={latestExplainablePeriod} />
       </div>
     </>
   );
