@@ -21,11 +21,17 @@ percentage-point differences between consecutive years.
 5. Import one year at a time from Data operations. The page refreshes after a
    successful import and shows the stored data, latest run, supplier ranking,
    market share, and available comparisons.
+6. Set `GEMINI_API_KEY` in `.env.local` to enable explanations. Enter the same
+   local admin token and choose **Explain latest market data** to summarize the
+   latest stored period. Each explanation is generated on request.
 
 ## Checks
 
 Run `npm test` for the normalization, ingestion validation, and analytics unit
 tests. `npm run typecheck` and `npm run lint` check the application code.
+The route tests cover authorization, request validation, selected-period
+metrics, and the analysis response contract. A live import should be exercised
+one year at a time because the public Comtrade preview can be rate-limited.
 
 ## Interpretation limits
 
@@ -36,3 +42,5 @@ tests. `npm run typecheck` and `npm run lint` check the application code.
   otherwise the dashboard shows the partner code.
 - The public preview may be rate-limited. Import one year per request and retry
   later if UN Comtrade returns a rate-limit response.
+- Gemini explanations describe calculated values; they do not establish causes
+  or predict commercial outcomes.
