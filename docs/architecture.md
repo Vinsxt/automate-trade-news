@@ -1,8 +1,9 @@
 # Publishing a trade research snapshot
 
-**Status** — Phase 1 adds the operator ingestion path, snapshot schema, and
-read-only pilot dashboard. The multi-market ranking and explanation pipeline
-remain the target design. See the [pilot runbook](vertical-slice.md).
+**Status** — Operator ingestion, read-only pilot snapshots, and per-product
+ranked snapshot publication are implemented. The ranked publisher requires the
+full ten-market cohort for a product. Cached explanations remain the target
+design. See the [pilot runbook](vertical-slice.md).
 
 ```mermaid
 flowchart LR

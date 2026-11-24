@@ -1,13 +1,13 @@
 # Global Trade Intelligence
 
 Global Trade Intelligence helps Indonesian exporters research destination markets.
-The proposed release ranks a curated set of markets for each HS product, explains
+The dashboard ranks a curated set of markets for each HS product, explains
 the score, and links to supplier evidence in a dated snapshot.
 
 **Runnable today:** the [India solar pilot](docs/vertical-slice.md) shows annual
 imports of HS 854142, supplier rankings, and Indonesia’s position from an
-operator-published snapshot. The broader catalog, ranking page, methodology page,
-quality badges and batch publication are planned.
+operator-published snapshot at `/pilot`. The ranking and methodology pages are
+implemented. The first shared ranking requires a completed multi-market cohort.
 
 ## Getting started
 
@@ -48,7 +48,7 @@ for project conventions and credential handling.
 
 ## Known limitations
 
-The local pilot covers one product and market. Future rankings will reflect the
+The solar pilot covers one product and market. Ranked snapshots reflect the
 selected candidate pool and available annual reports. Missing partner observations
 and weights limit comparisons. The public release requires a review of permissions
 for displaying derived results. Supabase Free projects can pause during inactivity;

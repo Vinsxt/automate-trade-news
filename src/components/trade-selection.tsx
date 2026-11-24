@@ -17,7 +17,7 @@ export function TradeSelection({ selection, availablePeriods, error }: Props) {
   return (
     <search className="mb-6 border border-stone-300 bg-white p-5">
       <h2 id="trade-filters" className="mb-4 text-lg font-semibold text-stone-950">Market and period</h2>
-      <form action="/" method="get" aria-labelledby="trade-filters" className="grid gap-4 md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_auto] xl:items-end">
+      <form action="/pilot" method="get" aria-labelledby="trade-filters" className="grid gap-4 md:grid-cols-2 xl:grid-cols-[2fr_1fr_1fr_1fr_auto] xl:items-end">
         <label className="text-sm font-medium">
           HS product
           <select name="product" className={fieldClass} defaultValue={selection.product ?? PILOT_QUERY.cmdCode}>

@@ -76,3 +76,26 @@ snapshot ID stays the same for identical inputs and calculations.
   Indonesia’s gap against each comparable supplier. Missing or estimated weights
   leave the comparison unavailable. The pilot is a single destination, so a
   ranked shortlist requires a separate multi-market cohort.
+
+## Publish a ranked cohort
+
+The home page and `/rankings` show published rankings. The India solar pilot
+is at `/pilot`. The ranking and drill-down are App Router Server Components.
+They read summaries on the server and send rendered UI to the browser. Recharts
+stays in a client component so the import trend can respond to user interaction.
+
+After applying the ranked-snapshot migration, ingest all ten candidate markets
+for one product with `npm run ingest:trade -- <reporter> <HS6> <year>` for each
+year from 2022 through 2025. The [research manifest](research.md#candidate-pool-and-opportunity-score)
+lists valid combinations. A completed empty slice can be screened as unranked.
+A failed or missing slice blocks publication.
+
+```bash
+npm run publish:ranked -- 090111
+```
+
+The publisher writes the ranking and drill-down together. Links pin the
+snapshot ID so a newer publication cannot change the evidence mid-review.
+Run `supabase/tests/ranked_snapshot_publication.sql` against a disposable
+database to verify that readers see published details only and that a failed
+publication exposes no partial results.

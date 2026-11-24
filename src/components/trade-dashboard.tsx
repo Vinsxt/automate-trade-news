@@ -63,7 +63,7 @@ function ShareChange({ value }: { value: number | null }) {
   return <span className={value >= 0 ? "text-emerald-800" : "text-red-800"}>{value >= 0 ? "+" : ""}{percent.format(value)} pp</span>;
 }
 
-export function TradeDashboard({ dashboard }: { dashboard: PilotDashboardData }) {
+export function TradeDashboard({ dashboard, marketName = "India" }: { dashboard: PilotDashboardData; marketName?: string }) {
   const latest = dashboard.imports.at(-1);
   const chartData = dashboard.imports.map(({ period, importValue, netWeightKg }) =>
     ({ period, value: importValue, netWeightKg }));
@@ -142,11 +142,11 @@ export function TradeDashboard({ dashboard }: { dashboard: PilotDashboardData })
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Supplier comparison</p>
             <h2 id="suppliers-title" className="mt-1 text-xl font-semibold text-stone-950">Partner markets · {latest?.period ?? "—"}</h2>
           </div>
-          <p className="text-xs text-stone-500">Market share uses India’s world-total row</p>
+          <p className="text-xs text-stone-500">Market share uses the destination’s World total</p>
         </div>
         <div tabIndex={0} role="region" aria-labelledby="suppliers-title" className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-800">
-          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
-            <caption className="sr-only">Supplier import values, market shares, and share changes for India</caption>
+          <table className="w-full min-w-[1000px] border-collapse text-left text-sm">
+            <caption className="sr-only">Supplier import values, market shares, and share changes for {marketName}</caption>
             <thead className="bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
               <tr>
                 <th scope="col" className="px-5 py-3 font-medium sm:px-6">Rank / partner</th>
@@ -155,6 +155,9 @@ export function TradeDashboard({ dashboard }: { dashboard: PilotDashboardData })
                 <th scope="col" className="px-4 py-3 text-right font-medium">Rank change</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">Share</th>
                 <th scope="col" className="px-5 py-3 text-right font-medium sm:px-6">Change · pp</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium">Unit value · USD/kg</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium">Value with usable weight</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium">Indonesia vs. supplier</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-200">
@@ -170,10 +173,13 @@ export function TradeDashboard({ dashboard }: { dashboard: PilotDashboardData })
                   <td className="px-4 py-3.5 text-right tabular-nums">{supplier.rankChange === null ? "—" : supplier.rankChange > 0 ? `+${supplier.rankChange}` : supplier.rankChange}</td>
                   <td className="px-4 py-3.5 text-right tabular-nums text-stone-700">{supplier.marketSharePct === null ? "—" : `${percent.format(supplier.marketSharePct)}%`}</td>
                   <td className="px-5 py-3.5 text-right tabular-nums sm:px-6"><ShareChange value={supplier.shareChangePp} /></td>
+                  <td className="px-4 py-3 text-right tabular-nums">{supplier.unitValueUsdPerKg == null ? "Unavailable" : percent.format(supplier.unitValueUsdPerKg)}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{supplier.unitValueCoveragePct == null ? "Unavailable" : `${percent.format(supplier.unitValueCoveragePct)}%`}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">{supplier.indonesiaUnitValueGapPct == null ? "—" : `${percent.format(supplier.indonesiaUnitValueGapPct)}%`}</td>
                 </tr>
               ))}
               {!dashboard.latestSuppliers.length && (
-                <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-stone-500">Supplier data will appear here after an import completes.</td></tr>
+                <tr><td colSpan={9} className="px-6 py-10 text-center text-sm text-stone-500">Supplier data is unavailable for this period.</td></tr>
               )}
             </tbody>
           </table>
@@ -208,7 +214,7 @@ export function TradeDashboard({ dashboard }: { dashboard: PilotDashboardData })
           {indonesia ? (
             <p className="mt-2 text-sm text-stone-700">
               Rank {indonesia.rank} of {dashboard.latestSuppliers.length} reported partners · {money.format(indonesia.importValue)} in imports
-              {indonesia.marketSharePct === null ? " · Share unavailable" : ` · ${percent.format(indonesia.marketSharePct)}% of India’s imports`}
+              {indonesia.marketSharePct === null ? " · Share unavailable" : ` · ${percent.format(indonesia.marketSharePct)}% of ${marketName}’s imports`}
               {" · "}<ShareChange value={indonesia.shareChangePp} />
             </p>
           ) : (
