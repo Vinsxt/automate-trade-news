@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 
+import { MOVEMENT_THRESHOLDS } from "@/lib/analytics/trade";
 import type { PilotDashboardData } from "@/lib/trade/dashboard";
 
 const COUNTRY_NAMES: Record<number, string> = {
@@ -64,11 +65,9 @@ function ShareChange({ value }: { value: number | null }) {
 
 export function TradeDashboard({ dashboard }: { dashboard: PilotDashboardData }) {
   const latest = dashboard.imports.at(-1);
-  const chartData = dashboard.imports.flatMap(({ period, importValue }) =>
-    importValue === null ? [] : [{ period, value: importValue }],
-  );
-  const gains = dashboard.latestSuppliers.filter((supplier) => supplier.shareChangePp !== null);
-  const largestGain = [...gains].sort((a, b) => (b.shareChangePp ?? 0) - (a.shareChangePp ?? 0))[0];
+  const chartData = dashboard.imports.map(({ period, importValue, netWeightKg }) =>
+    ({ period, value: importValue, netWeightKg }));
+  const indonesia = dashboard.latestSuppliers.find(({ partnerCode }) => partnerCode === 360);
   const latestValue = latest?.importValue ?? null;
 
   return (
@@ -99,7 +98,7 @@ export function TradeDashboard({ dashboard }: { dashboard: PilotDashboardData })
           </div>
           <span className="border border-stone-300 px-2.5 py-1 text-xs text-stone-600">USD · import perspective</span>
         </div>
-        {chartData.length ? (
+        {chartData.some(({ value }) => value !== null) ? (
           <>
             <div className="mt-5 h-72 w-full" role="img" aria-label="Annual import value trend in US dollars">
               <ResponsiveContainer width="100%" height="100%">
@@ -122,8 +121,8 @@ export function TradeDashboard({ dashboard }: { dashboard: PilotDashboardData })
               <summary className="w-fit cursor-pointer underline decoration-stone-400 underline-offset-4">View chart data table</summary>
               <table className="mt-3 w-full max-w-md text-left text-sm">
                 <caption className="sr-only">Annual imports in United States dollars</caption>
-                <thead><tr><th scope="col" className="py-2">Year</th><th scope="col" className="py-2 text-right">Import value · USD</th></tr></thead>
-                <tbody>{chartData.map((item) => <tr key={item.period} className="border-t border-stone-200"><th scope="row" className="py-2 text-left font-normal">{item.period}</th><td className="py-2 text-right tabular-nums">{money.format(item.value)}</td></tr>)}</tbody>
+                <thead><tr><th scope="col" className="py-2">Year</th><th scope="col" className="py-2 text-right">Import value · USD</th><th scope="col" className="py-2 text-right">Net weight · kg</th></tr></thead>
+                <tbody>{chartData.map((item) => <tr key={item.period} className="border-t border-stone-200"><th scope="row" className="py-2 text-left font-normal">{item.period}</th><td className="py-2 text-right tabular-nums">{item.value === null ? "Unavailable" : money.format(item.value)}</td><td className="py-2 text-right tabular-nums">{item.netWeightKg === null ? "Unavailable" : percent.format(item.netWeightKg)}</td></tr>)}</tbody>
               </table>
             </details>
           </>
@@ -131,7 +130,7 @@ export function TradeDashboard({ dashboard }: { dashboard: PilotDashboardData })
           <div className="mt-5 grid min-h-56 place-items-center border border-dashed border-stone-300 bg-stone-50 px-6 text-center">
             <div>
               <p className="font-medium text-stone-800">No annual records loaded</p>
-              <p className="mt-1 text-sm text-stone-500">Choose a year in Data operations to retrieve the first observation set.</p>
+              <p className="mt-1 text-sm text-stone-500">Choose another year range or retrieve a year in Data operations.</p>
             </div>
           </div>
         )}
@@ -146,31 +145,35 @@ export function TradeDashboard({ dashboard }: { dashboard: PilotDashboardData })
           <p className="text-xs text-stone-500">Market share uses India’s world-total row</p>
         </div>
         <div tabIndex={0} role="region" aria-labelledby="suppliers-title" className="overflow-x-auto focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-emerald-800">
-          <table className="w-full min-w-[600px] border-collapse text-left text-sm">
+          <table className="w-full min-w-[760px] border-collapse text-left text-sm">
             <caption className="sr-only">Supplier import values, market shares, and share changes for India</caption>
             <thead className="bg-stone-50 text-xs uppercase tracking-wide text-stone-500">
               <tr>
                 <th scope="col" className="px-5 py-3 font-medium sm:px-6">Rank / partner</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">Import value</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium">Value change</th>
+                <th scope="col" className="px-4 py-3 text-right font-medium">Rank change</th>
                 <th scope="col" className="px-4 py-3 text-right font-medium">Share</th>
                 <th scope="col" className="px-5 py-3 text-right font-medium sm:px-6">Change · pp</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-200">
-              {dashboard.latestSuppliers.slice(0, 10).map((supplier, index) => (
+              {dashboard.latestSuppliers.map((supplier) => (
                 <tr key={supplier.partnerCode}>
                   <th scope="row" className="px-5 py-3.5 text-left font-normal sm:px-6">
-                    <span className="mr-3 inline-block w-5 text-xs text-stone-400">{index + 1}</span>
+                    <span className="mr-3 inline-block w-5 text-xs text-stone-400">{supplier.rank}</span>
                     <span className="font-medium text-stone-900">{countryName(supplier.partnerCode, supplier.partnerIso)}</span>
                     <span className="ml-2 text-xs text-stone-400">{supplier.partnerIso ?? `M49 ${supplier.partnerCode}`}</span>
                   </th>
                   <td className="px-4 py-3.5 text-right tabular-nums text-stone-700">{money.format(supplier.importValue)}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums">{supplier.importValueChange === null ? "—" : money.format(supplier.importValueChange)}</td>
+                  <td className="px-4 py-3.5 text-right tabular-nums">{supplier.rankChange === null ? "—" : supplier.rankChange > 0 ? `+${supplier.rankChange}` : supplier.rankChange}</td>
                   <td className="px-4 py-3.5 text-right tabular-nums text-stone-700">{supplier.marketSharePct === null ? "—" : `${percent.format(supplier.marketSharePct)}%`}</td>
                   <td className="px-5 py-3.5 text-right tabular-nums sm:px-6"><ShareChange value={supplier.shareChangePp} /></td>
                 </tr>
               ))}
               {!dashboard.latestSuppliers.length && (
-                <tr><td colSpan={4} className="px-6 py-10 text-center text-sm text-stone-500">Supplier data will appear here after an import completes.</td></tr>
+                <tr><td colSpan={6} className="px-6 py-10 text-center text-sm text-stone-500">Supplier data will appear here after an import completes.</td></tr>
               )}
             </tbody>
           </table>
@@ -179,19 +182,43 @@ export function TradeDashboard({ dashboard }: { dashboard: PilotDashboardData })
 
       <section className="grid gap-4 md:grid-cols-2">
         <article className="border border-stone-300 bg-[#f7f6f1] p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Movement to investigate</p>
-          {largestGain ? (
-            <p className="mt-2 text-sm leading-6 text-stone-700">
-              {countryName(largestGain.partnerCode, largestGain.partnerIso)} has the largest available share change at {largestGain.shareChangePp! > 0 ? "+" : ""}{percent.format(largestGain.shareChangePp!)} percentage points. This is a descriptive change, not a causal explanation.
+          <h2 className="font-semibold text-stone-950">Movements to investigate</h2>
+          <p className="mt-2 text-sm text-stone-600">
+            Flags require a year-over-year change of at least {MOVEMENT_THRESHOLDS.importValuePct}% in import value
+            or {MOVEMENT_THRESHOLDS.supplierSharePp} percentage points in a supplier’s share.
+          </p>
+          {dashboard.movements.length ? (
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-stone-700">
+              {dashboard.movements.map((movement) => (
+                <li key={movement.kind === "import_value" ? movement.kind : movement.partnerCode}>
+                  {movement.kind === "import_value" ? (
+                    <>Total import value <TrendValue value={movement.change} /></>
+                  ) : (
+                    <>{countryName(movement.partnerCode, movement.partnerIso)} share <ShareChange value={movement.change} /></>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-stone-700">No available comparison met either threshold.</p>
+          )}
+        </article>
+        <article className="border border-stone-300 bg-white p-5">
+          <h2 className="font-semibold text-stone-950">Indonesia’s supplier position · {latest?.period ?? "—"}</h2>
+          {indonesia ? (
+            <p className="mt-2 text-sm text-stone-700">
+              Rank {indonesia.rank} of {dashboard.latestSuppliers.length} reported partners · {money.format(indonesia.importValue)} in imports
+              {indonesia.marketSharePct === null ? " · Share unavailable" : ` · ${percent.format(indonesia.marketSharePct)}% of India’s imports`}
+              {" · "}<ShareChange value={indonesia.shareChangePp} />
             </p>
           ) : (
-            <p className="mt-2 text-sm leading-6 text-stone-700">Import a consecutive prior year to compare supplier share changes. No movement is inferred from missing data.</p>
+            <p className="mt-2 text-sm text-stone-700">No supplier value was available for Indonesia in this year.</p>
           )}
         </article>
         <article className="border border-stone-300 bg-white p-5">
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-stone-500">Data coverage</p>
           <p className="mt-2 text-sm leading-6 text-stone-700">
-            {dashboard.observationCount} source rows stored. {dashboard.lastRun?.completed_at
+            {dashboard.observationCount} source rows in this period range. {dashboard.lastRun?.completed_at
               ? `Last retrieval ${new Date(dashboard.lastRun.completed_at).toLocaleString("en-US", { dateStyle: "medium" })}; run ${dashboard.lastRun.status.toLowerCase()}.`
               : "No completed retrieval is recorded yet."}
           </p>

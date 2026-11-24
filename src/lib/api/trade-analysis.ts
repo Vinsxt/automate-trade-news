@@ -5,6 +5,7 @@ import type { TradeExplanationMetrics } from "@/lib/gemini/explanation";
 import { logApiEvent, createRequestContext } from "@/lib/observability/request";
 import { SupabaseConfigurationError } from "@/lib/supabase/admin";
 import { getPilotDashboardData, type PilotDashboardData } from "@/lib/trade/dashboard";
+import { PILOT_QUERY } from "@/lib/trade/pilot";
 import { analysisRequestSchema } from "@/lib/validations/analysis";
 
 interface AnalysisDependencies {
@@ -18,8 +19,8 @@ function explanationMetrics(dashboard: PilotDashboardData, period: string): Trad
   const suppliers = dashboard.supplierYears[period] ?? [];
 
   return {
-    market: "India",
-    product: "HS 854142 photovoltaic cells not assembled into modules or panels",
+    market: PILOT_QUERY.reporterName,
+    product: `HS ${PILOT_QUERY.cmdCode} · ${PILOT_QUERY.classificationLabel} · ${PILOT_QUERY.productName}`,
     period,
     importValue: annual.importValue,
     yearOverYearPct: annual.yearOverYearPct,
@@ -81,7 +82,7 @@ export async function handleTradeAnalysis(
     }, statusCode);
   }
 
-  const period = parsed.data.period ?? dashboard.latestPeriod;
+  const period = parsed.data.period ?? dashboard.imports.findLast(({ importValue }) => importValue !== null)?.period;
   if (!period) {
     return respond({ error: { code: "PERIOD_UNAVAILABLE", message: "No import data is available to explain" } }, 422);
   }

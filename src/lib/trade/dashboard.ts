@@ -1,16 +1,20 @@
 import { calculateTradeSummary, type TradeObservationRow } from "@/lib/analytics/trade";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { PILOT_QUERY } from "@/lib/comtrade/normalize";
+import { PILOT_QUERY } from "@/lib/trade/pilot";
+import type { TradeSelection } from "@/lib/validations/trade-selection";
 
-export async function getPilotDashboardData() {
+export async function getPilotDashboardData(selection: TradeSelection = {}) {
   const supabase = createSupabaseAdminClient();
   const [observationsResult, runResult] = await Promise.all([
     supabase
       .from("trade_observations")
-      .select("period,partner_code,partner_iso,primary_value,is_reported,is_aggregate")
-      .eq("reporter_code", PILOT_QUERY.reporterCode)
+      .select("period,partner_code,partner_iso,primary_value,net_weight,is_reported,is_aggregate", { count: "exact" })
+      .eq("reporter_code", Number(selection.market ?? PILOT_QUERY.reporterCode))
+      .eq("type_code", "C")
+      .eq("frequency_code", "A")
       .eq("flow_code", PILOT_QUERY.flowCode)
-      .eq("product_code", PILOT_QUERY.cmdCode)
+      .eq("product_code", selection.product ?? PILOT_QUERY.cmdCode)
+      .eq("classification_code", PILOT_QUERY.classificationCode)
       .eq("classification_search_code", PILOT_QUERY.classificationSearchCode)
       .eq("partner2_code", 0)
       .eq("customs_code", "C00")
@@ -32,21 +36,31 @@ export async function getPilotDashboardData() {
   }
 
   const observations = (observationsResult.data ?? []) as TradeObservationRow[];
+  if (observationsResult.count !== observations.length) {
+    throw new Error("Trade dashboard data exceeded the query limit");
+  }
+
+  const includesPeriod = (period: string) =>
+    (!selection.from || period >= selection.from) && (!selection.to || period <= selection.to);
+  const selectedObservations = observations.filter(({ period }) => includesPeriod(period));
   const summary = calculateTradeSummary(observations);
-  const latestPeriod = summary.imports.at(-1)?.period ?? null;
+  const imports = summary.imports.filter(({ period }) => includesPeriod(period));
+  const latestPeriod = imports.at(-1)?.period ?? null;
   const sourceFlags = {
-    notReported: observations.filter((row) => row.is_reported === false).length,
-    aggregate: observations.filter((row) => row.is_aggregate === true).length,
+    notReported: selectedObservations.filter((row) => row.is_reported === false).length,
+    aggregate: selectedObservations.filter((row) => row.is_aggregate === true).length,
   };
 
   return {
-    ...summary,
-    supplierYears: Object.fromEntries(summary.supplierYears),
+    imports,
+    availablePeriods: summary.imports.map(({ period }) => period),
+    supplierYears: Object.fromEntries([...summary.supplierYears].filter(([period]) => includesPeriod(period))),
+    movements: latestPeriod ? summary.movements.get(latestPeriod) ?? [] : [],
     latestPeriod,
     latestSuppliers: latestPeriod ? summary.supplierYears.get(latestPeriod) ?? [] : [],
     sourceFlags,
     lastRun: runResult.data,
-    observationCount: observations.length,
+    observationCount: selectedObservations.length,
   };
 }
 

@@ -1,5 +1,6 @@
 import { fetchComtradePreview } from "./client";
-import { normalizeComtradeResponse, PILOT_QUERY } from "./normalize";
+import { normalizePilotResponse } from "./normalize";
+import { PILOT_QUERY } from "../trade/pilot";
 import type { TradeObservation } from "./types";
 import { createSupabaseAdminClient } from "../supabase/admin";
 
@@ -84,8 +85,8 @@ export async function ingestPilotData(
         cmdCode: PILOT_QUERY.cmdCode,
         flowCode: PILOT_QUERY.flowCode,
       });
-      const observations = normalizeComtradeResponse(response);
-      recordsReceived += observations.length;
+      recordsReceived += response.data.length;
+      const observations = normalizePilotResponse(response, period);
 
       if (observations.length === 0) {
         continue;

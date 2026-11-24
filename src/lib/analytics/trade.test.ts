@@ -54,3 +54,21 @@ test("does not call a non-consecutive period a year-over-year comparison", () =>
   assert.equal(result.imports[1].yearOverYearPct, null);
   assert.equal(result.supplierYears.get("2024")?.[0].shareChangePp, null);
 });
+
+test("calculates supplier rank and value changes and flags only threshold crossings", () => {
+  const summary = calculateTradeSummary([
+    ...rows,
+    { period: "2023", partner_code: 360, partner_iso: "IDN", primary_value: 10 },
+    { period: "2024", partner_code: 360, partner_iso: "IDN", primary_value: 35 },
+  ]);
+  const indonesia = summary.supplierYears.get("2024")?.find(({ partnerCode }) => partnerCode === 360);
+  assert.equal(indonesia?.rank, 2);
+  assert.equal(indonesia?.rankChange, 1);
+  assert.equal(indonesia?.importValueChange, 25);
+  assert.equal(indonesia?.shareChangePp, 18);
+  assert.deepEqual(summary.movements.get("2024"), [
+    { kind: "import_value", change: 25 },
+    { kind: "supplier_share", partnerCode: 360, partnerIso: "IDN", change: 18 },
+  ]);
+  assert.deepEqual(summary.movements.get("2023"), []);
+});

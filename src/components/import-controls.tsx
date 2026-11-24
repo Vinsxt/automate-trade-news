@@ -3,13 +3,15 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
-const YEARS = ["2025", "2024", "2023", "2022", "2021"];
-type TradeExplanation = { headline: string; summary: string; observations: string[]; caveat: string };
+import type { TradeExplanation } from "@/lib/gemini/explanation";
+import { PILOT_QUERY } from "@/lib/trade/pilot";
 
-export function ImportControls() {
+const YEARS = [...PILOT_QUERY.periods].reverse();
+
+export function ImportControls({ explanationPeriod }: { explanationPeriod: string | null }) {
   const router = useRouter();
   const [token, setToken] = useState("");
-  const [period, setPeriod] = useState("2025");
+  const [period, setPeriod] = useState<string>(YEARS[0]);
   const [busy, setBusy] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
   const [explanation, setExplanation] = useState<TradeExplanation | null>(null);
@@ -19,6 +21,8 @@ export function ImportControls() {
   async function submitImport(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
+    setExplanation(null);
+    setAnalysisError(null);
     setMessage(null);
     try {
       const response = await fetch("/api/admin/ingest", {
@@ -48,6 +52,7 @@ export function ImportControls() {
   }
 
   async function explainLatest() {
+    if (!explanationPeriod) return;
     if (!token.trim()) {
       setAnalysisError("Enter the local admin token first.");
       return;
@@ -59,7 +64,7 @@ export function ImportControls() {
       const response = await fetch("/api/ai/analyze", {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ period: explanationPeriod }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error?.message ?? "Explanation is temporarily unavailable. Try again shortly.");
@@ -110,7 +115,7 @@ export function ImportControls() {
         </div>
         <button
           type="submit"
-          disabled={busy}
+          disabled={busy || analyzing}
           className="w-full bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 disabled:cursor-not-allowed disabled:bg-stone-400"
         >
           {busy ? "Fetching from UN Comtrade…" : `Import ${period}`}
@@ -125,16 +130,16 @@ export function ImportControls() {
         <button
           type="button"
           onClick={explainLatest}
-          disabled={analyzing}
+          disabled={busy || analyzing || !explanationPeriod}
           className="min-h-11 w-full border border-emerald-900 px-4 py-2.5 text-sm font-semibold text-emerald-950 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {analyzing ? "Generating explanation…" : "Explain latest market data"}
+          {analyzing ? "Generating explanation…" : explanationPeriod ? `Explain ${explanationPeriod} market data` : "No market data to explain"}
         </button>
         <div className="mt-3 space-y-2" aria-live="polite">
           {analysisError && <p role="alert" className="text-sm leading-5 text-red-800">{analysisError}</p>}
           {explanation && (
             <section className="border border-stone-300 bg-white p-4" aria-label="AI explanation">
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Gemini · calculated data only</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Gemini-selected findings</p>
               <h3 className="mt-2 font-semibold text-stone-950">{explanation.headline}</h3>
               <p className="mt-2 text-sm leading-5 text-stone-700">{explanation.summary}</p>
               {explanation.observations.length > 0 && (
@@ -148,7 +153,7 @@ export function ImportControls() {
         </div>
       </div>
       <p className="mt-4 border-t border-stone-300 pt-3 text-xs leading-5 text-stone-500">
-        The token is sent only in request authorization headers and cleared after a successful import. Do not paste it into a shared or deployed site.
+        Explanations send calculated trade evidence to Gemini. Enter the token only in your trusted workspace.
       </p>
     </aside>
   );

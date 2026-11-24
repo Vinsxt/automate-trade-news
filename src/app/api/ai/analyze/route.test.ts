@@ -52,7 +52,7 @@ test("sends only selected stored metrics to the explanation provider", async () 
     assert.equal(response.status, 200);
     assert.deepEqual(received, {
       market: "India",
-      product: "HS 854142 photovoltaic cells not assembled into modules or panels",
+      product: "HS 854142 · HS 2022 · Photovoltaic cells not assembled in modules or made up into panels",
       period: "2024",
       importValue: 100,
       yearOverYearPct: 12,

@@ -1,15 +1,6 @@
+import { PILOT_QUERY } from "../trade/pilot";
 import type { ComtradeRecord, ComtradeResponse, TradeObservation } from "./types";
 import { comtradeResponseSchema } from "./types";
-
-export const PILOT_QUERY = {
-  reporterCode: 699,
-  reporterName: "India",
-  cmdCode: "854142",
-  productName: "Photovoltaic cells not assembled in modules or made up into panels",
-  flowCode: "M",
-  classificationSearchCode: "HS",
-  periods: ["2021", "2022", "2023", "2024", "2025"],
-} as const;
 
 export function buildObservationKey(record: ComtradeRecord): string {
   return [
@@ -72,5 +63,22 @@ export function normalizeComtradeRecord(record: ComtradeRecord): TradeObservatio
 
 export function normalizeComtradeResponse(input: unknown): TradeObservation[] {
   const response: ComtradeResponse = comtradeResponseSchema.parse(input);
+  return response.data.map(normalizeComtradeRecord);
+}
+
+
+export function normalizePilotResponse(response: ComtradeResponse, period: string): TradeObservation[] {
+  if (response.data.some((row) =>
+    row.classificationCode !== PILOT_QUERY.classificationCode ||
+    row.classificationSearchCode !== PILOT_QUERY.classificationSearchCode ||
+    row.reporterCode !== PILOT_QUERY.reporterCode ||
+    row.cmdCode !== PILOT_QUERY.cmdCode ||
+    row.flowCode !== PILOT_QUERY.flowCode ||
+    row.period !== period ||
+    row.typeCode !== "C" ||
+    row.freqCode !== "A"
+  )) {
+    throw new Error("UN Comtrade returned observations outside the pilot query");
+  }
   return response.data.map(normalizeComtradeRecord);
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { ingestPilotData, type IngestionResult } from "@/lib/comtrade/ingest";
-import { PILOT_QUERY } from "@/lib/comtrade/normalize";
+import { PILOT_QUERY } from "@/lib/trade/pilot";
 import { SupabaseConfigurationError } from "@/lib/supabase/admin";
 import { ingestionRequestSchema } from "@/lib/validations/ingestion";
 import { createRequestContext, logApiEvent } from "@/lib/observability/request";
