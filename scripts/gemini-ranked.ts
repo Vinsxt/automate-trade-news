@@ -16,7 +16,7 @@ export async function selectRankedFindings(ai: GoogleGenAI, misses: ReturnType<t
       slot, evidence: row.findings.map(({ id, signal }) => ({ id, signal })),
     }))),
     config: {
-      abortSignal: AbortSignal.timeout(25_000),
+      abortSignal: AbortSignal.timeout(55_000),
       thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
       systemInstruction: "For every slot choose the two findings most useful to an exporter comparing markets, most useful first. Return only slot numbers and evidence IDs.",
       responseMimeType: "application/json",
