@@ -27,7 +27,24 @@ export function buildRankedSnapshot(hs6: string, slices: CompletedSlice[]) {
     if (!slice || slice.observations.some(row => row.period !== period || row.ingestion_run_id !== slice.runId)) {
       throw new Error(`Incomplete cohort for reporter ${reporter}, year ${period}`);
     }
-    return { ...slice, observations: slice.observations.toSorted((a, b) => a.observation_key.localeCompare(b.observation_key)) };
+    const observations = slice.observations
+      .toSorted((a, b) => a.observation_key.localeCompare(b.observation_key))
+      .map(row => ({
+        observation_key: row.observation_key,
+        ingestion_run_id: row.ingestion_run_id,
+        classification_code: row.classification_code,
+        is_original_classification: row.is_original_classification,
+        period: row.period,
+        partner_code: row.partner_code,
+        partner_iso: row.partner_iso,
+        primary_value: row.primary_value,
+        net_weight: row.net_weight,
+        is_net_wgt_estimated: row.is_net_wgt_estimated,
+        is_reported: row.is_reported,
+        is_aggregate: row.is_aggregate,
+      }));
+    // Match the publisher projection so a JSONB round trip preserves existing snapshot IDs.
+    return { reporter, period, runId: slice.runId, observations };
   }));
   if (ordered.length !== slices.length || bySlice.size !== slices.length) throw new Error("Unexpected or duplicate cohort slices");
 

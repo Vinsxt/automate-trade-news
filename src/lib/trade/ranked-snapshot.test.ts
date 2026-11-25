@@ -24,6 +24,11 @@ test("publishes a stable ranked release with matching details and private source
   const slices = fixture();
   const snapshot = buildRankedSnapshot("090111", slices);
   assert.equal(snapshot.id, buildRankedSnapshot("090111", slices.toReversed()).id);
+  const reordered = JSON.parse(JSON.stringify(snapshot.inputs, (_key, value) =>
+    value && typeof value === "object" && !Array.isArray(value)
+      ? Object.fromEntries(Object.entries(value).reverse())
+      : value));
+  assert.equal(snapshot.id, buildRankedSnapshot("090111", reordered.slices).id);
   assert.equal(snapshot.ranking.rankings.length, 10);
   assert.ok(snapshot.ranking.rankings.filter(row => row.shortlisted).length >= 3);
   assert.equal(snapshot.details[36].supplierYears["2025"][0].unitValueUsdPerKg, 2);
