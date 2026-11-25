@@ -76,8 +76,15 @@ async function main() {
       let responseText: string | undefined;
       try {
         responseText = await selectRankedFindings(ai, misses);
-      } catch {
+      } catch (error) {
         counts.providerErrors++;
+        const status = (error as { status?: unknown } | null)?.status;
+        const reason = typeof status === "number" && status >= 400 && status <= 599
+          ? `HTTP ${status}`
+          : error instanceof Error && ["TimeoutError", "AbortError"].includes(error.name)
+            ? "timeout"
+            : "transport failure";
+        console.error(`Gemini request failed for ${hs6} (${reason}).`);
       }
 
       let selections: string[][] | undefined;

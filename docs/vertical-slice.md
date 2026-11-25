@@ -125,7 +125,7 @@ default 1) and an optional HS6 code. Check the active limits in AI Studio
 before raising the daily cap. With no HS6 argument, the command walks the
 entire catalog. Each product with cache misses makes one request covering
 its eligible markets. Supabase reserves quota before calls, counts failures
-and prevents a second attempt at the same evidence on the quota day. The
+and allows one retry per evidence and quota day after a provider error. The
 batch spaces calls and stops after a provider error. Rerun to fill remaining
 misses. The generator checks the same 145 MB database guard as backfill.
 

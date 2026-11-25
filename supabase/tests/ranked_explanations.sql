@@ -15,6 +15,11 @@ begin
   update public.trade_explanation_attempts set status = 'provider_error' where id = reserved;
   if public.reserve_trade_explanation_attempt(repeat('4', 64), 'fixture', 'v1', array[repeat('7', 64)], 1) is not null
   then raise exception 'Failed requests must count against the daily cap'; end if;
+  reserved := public.reserve_trade_explanation_attempt(repeat('4', 64), 'fixture', 'v1', array[repeat('6', 64)], 20);
+  if reserved is null then raise exception 'Expected a bounded retry'; end if;
+  update public.trade_explanation_attempts set status = 'provider_error' where id = reserved;
+  if public.reserve_trade_explanation_attempt(repeat('4', 64), 'fixture', 'v1', array[repeat('6', 64)], 20) is not null
+  then raise exception 'Provider errors should allow only one retry per evidence and day'; end if;
 end;
 $$;
 set local role anon;
