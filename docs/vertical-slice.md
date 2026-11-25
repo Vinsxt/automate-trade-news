@@ -111,3 +111,32 @@ The operator measures database size before every group and each ranked publicati
 A 145 MB stop leaves headroom below 30% of the 500 MB Free allowance. Comtrade
 attempt and row budgets still apply. Source rows returned under a different HS
 edition can be retained privately and cannot qualify as HS 2022 ranking evidence.
+
+## Generate ranked market explanations
+
+After publishing rankings, apply the ranked explanations migration and run:
+
+```bash
+npm run generate:explanations -- 1 090111
+```
+
+The arguments are the project's allowed requests per Pacific day (1–20,
+default 1) and an optional HS6 code. Check the active limits in AI Studio
+before raising the daily cap. With no HS6 argument, the command walks the
+entire catalog. Each product with cache misses makes one request covering
+its eligible markets. Supabase reserves quota before calls, counts failures
+and prevents a second attempt at the same evidence on the quota day. The
+batch spaces calls and stops after a provider error. Rerun to fill remaining
+misses. The generator checks the same 145 MB database guard as backfill.
+
+Gemini receives slot numbers and derived categories. The app constructs
+sentences and figures from the snapshot and validates selected finding IDs
+before use. The command reports requests, attempted market explanations, pass rate,
+cache hits and fallbacks. A response that fails tracing counts against every
+market included in that attempt. The SQL test under
+`supabase/tests/ranked_explanations.sql` verifies the cache visibility and
+daily budget. Use a disposable database for the fixture.
+
+The public market page shows stored findings for its reference window and
+a labeled local summary for a different window or a cache miss. The website
+keeps working during a provider outage or before the cache is populated.

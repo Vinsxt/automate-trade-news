@@ -2,17 +2,17 @@
 
 **Status** — Operator ingestion, read-only pilot snapshots, and per-product
 ranked snapshot publication are implemented. The ranked publisher requires the
-full ten-market cohort for a product. Cached explanations remain the target
-design. See the [pilot runbook](vertical-slice.md).
+full ten-market cohort for a product. A separate operator step adds cached explanations after publication. See the [pilot runbook](vertical-slice.md).
 
 ```mermaid
 flowchart LR
     C[UN Comtrade] --> B[Operator-run batch]
     B --> R[Private observations and run records]
     R --> M[Calculate indicators and score eligible pairs]
-    M --> E[Validate explanations or render fallback]
+    M --> P[Publish snapshot in Supabase]
+    P --> E[Select and validate findings]
     E <--> G[Gemini]
-    E --> P[Publish snapshot in Supabase]
+    E --> P
     P --> W[Read-only Next.js ranking and drill-down]
 ```
 
@@ -30,16 +30,14 @@ flowchart LR
    comparable unit values, quality fields, eligibility reasons and score components.
    Persist the candidate cohort, raw component values, weights, threshold settings and
    shortlist cutoff. A published result must be reproducible after a source revision.
-4. For each published pair, assemble a bounded evidence payload for the snapshot’s
-   reference period. Hash a canonical representation including units, period, caveats
-   and method version. Reuse an accepted explanation for that hash and generation
-   version. On a miss, use a Flash-class model to select supported findings. Validate
-   the schema and trace every claim to the evidence. Store validation status, model
-   and generation version, and accepted output. For failure or a different user-selected
-   range, render a deterministic summary from the applicable precomputed metrics.
-5. Stage the batch, validate coverage and provenance, then atomically promote the
-   snapshot. A failed publication leaves the previous one readable. Carry the snapshot
-   ID from ranking through drill-down so navigation never mixes releases.
+4. Publish the ranked snapshot atomically after validating coverage and provenance.
+   A failed publication leaves the previous one readable. Carry the snapshot ID from
+   the ranking through market detail.
+5. In a separate operator step, hash the published evidence including units, period,
+   caveats, method and generation version. Reuse accepted findings for that hash
+   or ask Gemini to select IDs using transformed categories. Store the accepted
+   IDs and a private attempt status. On a miss, failed validation, or a different
+   selected range, render a deterministic summary from the snapshot.
 
 ## Read path and operating cost
 
