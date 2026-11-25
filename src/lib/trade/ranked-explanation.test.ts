@@ -12,6 +12,7 @@ const market = {
 test("explanation hash changes with figures, edition, period or method", () => {
   const { hash } = rankingEvidence(market);
   assert.equal(rankingEvidence({ ...market }).hash, hash);
+  assert.notEqual(rankingEvidence(market, "gemini-3.6-flash").hash, hash);
   for (const changed of [
     { components: { ...market.components, marketSize: 201 } },
     { edition: "H5" }, { referenceYear: 2024 }, { method: "opportunity-v2" },

@@ -28,10 +28,10 @@ export async function readRankedMarket(snapshotId: string, reporter: number) {
   return data?.dashboard as PublishedPilotDashboard | undefined;
 }
 
-export async function readRankedExplanation(snapshotId: string, reporter: number, hash: string) {
+export async function readRankedExplanation(snapshotId: string, reporter: number, hashes: string[]) {
   const { data, error } = await createSupabaseReader().from("trade_ranked_explanations")
-    .select("findings").eq("snapshot_id", snapshotId).eq("reporter_code", reporter)
-    .eq("evidence_hash", hash).maybeSingle();
+    .select("evidence_hash,findings").eq("snapshot_id", snapshotId).eq("reporter_code", reporter)
+    .in("evidence_hash", hashes);
   if (error) throw new Error("Could not load the cached market explanation");
-  return data?.findings;
+  return hashes.map(hash => data.find(row => row.evidence_hash === hash)?.findings).find(Boolean);
 }

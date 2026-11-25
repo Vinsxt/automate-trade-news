@@ -5,7 +5,7 @@ import { formatNumber, RankingShell, SnapshotDate } from "@/components/ranking-s
 import { TradeDashboard } from "@/components/trade-dashboard";
 import { selectPilotDashboard } from "@/lib/trade/dashboard";
 import { COHORT_PERIODS, MARKETS, PRODUCTS } from "@/lib/trade/cohort";
-import { rankingEvidence, summarizeExploredYears, traceFindings } from "@/lib/trade/ranked-explanation";
+import { EXPLANATION_MODELS, rankingEvidence, summarizeExploredYears, traceFindings } from "@/lib/trade/ranked-explanation";
 import { readRankedExplanation, readRankedMarket, readRankedRelease } from "@/lib/trade/ranked-reader";
 
 type Props = PageProps<"/rankings/[hs6]/[reporter]">;
@@ -32,7 +32,7 @@ async function Market({ params, searchParams }: Props) {
   const evidence = rankingEvidence(result);
   const exploring = !invalidRange && ((from && from !== COHORT_PERIODS[0]) || (to && to !== COHORT_PERIODS.at(-1)));
   const cached = !exploring && evidence.findings.length
-    ? await readRankedExplanation(snapshotId, code, evidence.hash).then(ids => traceFindings(evidence.findings, ids)).catch(() => null)
+    ? await readRankedExplanation(snapshotId, code, EXPLANATION_MODELS.map(model => rankingEvidence(result, model).hash)).then(ids => traceFindings(evidence.findings, ids)).catch(() => null)
     : null;
   const findings = cached ?? (!exploring && evidence.findings.length
     ? evidence.findings.map(finding => finding.text)

@@ -4,6 +4,8 @@ import type { PilotDashboardData } from "./dashboard";
 import type { RankedRelease } from "./ranked-snapshot";
 
 export const EXPLANATION_MODEL = "gemini-3.5-flash-lite";
+export const EXPLANATION_MODELS = [EXPLANATION_MODEL, "gemini-3.6-flash"] as const;
+export type ExplanationModel = typeof EXPLANATION_MODELS[number];
 export const EXPLANATION_VERSION = "ranked-findings-v1";
 
 const usd = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
@@ -13,7 +15,7 @@ type Finding = { id: string; signal: string; text: string; values: number[] };
 type RankedMarket = RankedRelease["rankings"][number];
 const direction = (n: number) => n > 0 ? "increased" : n < 0 ? "decreased" : "unchanged";
 
-export function rankingEvidence(result: RankedMarket) {
+export function rankingEvidence(result: RankedMarket, model: ExplanationModel = EXPLANATION_MODEL) {
   const { components, points } = result;
   const findings: Finding[] = components && points ? [
     { id: "size", signal: `Import size scored ${points.marketSize >= 50 ? "in the upper half" : "below the midpoint"} of the cohort scale`,
@@ -28,7 +30,7 @@ export function rankingEvidence(result: RankedMarket) {
   ] : [];
   const period = `${result.referenceYear - 3}–${result.referenceYear}`;
   const hash = createHash("sha256").update(JSON.stringify([
-    EXPLANATION_VERSION, EXPLANATION_MODEL, result.hs6, result.reporter, result.edition, period,
+    EXPLANATION_VERSION, model, result.hs6, result.reporter, result.edition, period,
     result.method, result.eligibleCount, "USD, %, percentage points, percentile points",
     "relative to eligible cohort; import value is not volume or a forecast",
     findings.map(({ id, values, signal }) => [id, values, signal]),

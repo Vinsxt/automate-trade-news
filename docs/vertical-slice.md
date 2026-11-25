@@ -127,7 +127,10 @@ entire catalog. Each product with cache misses makes one request covering
 its eligible markets. Supabase reserves quota before calls, counts failures
 and allows one retry per evidence and quota day after a provider error. The
 batch spaces calls and stops after a provider error. Rerun to fill remaining
-misses. The generator checks the same 145 MB database guard as backfill.
+misses. If Flash-Lite is unavailable and the project has verified Free-tier
+access to Gemini 3.6 Flash, run with `TRADE_EXPLANATION_MODEL=gemini-3.6-flash`.
+Both model choices use the same application cap and reuse validated cache entries.
+The generator checks the same 145 MB database guard as backfill.
 
 Gemini receives slot numbers and derived categories. The app constructs
 sentences and figures from the snapshot and validates selected finding IDs

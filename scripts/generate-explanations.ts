@@ -2,13 +2,15 @@ import { createRankedGemini, selectRankedFindings } from "./gemini-ranked";
 import { setTimeout } from "node:timers/promises";
 import { createSupabaseAdminClient } from "../src/lib/supabase/admin";
 import { PRODUCTS } from "../src/lib/trade/cohort";
-import { EXPLANATION_MODEL, EXPLANATION_VERSION, rankingEvidence, traceBatch, traceFindings } from "../src/lib/trade/ranked-explanation";
+import { EXPLANATION_MODEL, EXPLANATION_MODELS, EXPLANATION_VERSION, rankingEvidence, traceBatch, traceFindings } from "../src/lib/trade/ranked-explanation";
 import type { RankedRelease } from "../src/lib/trade/ranked-snapshot";
 import { assertRankedStorageHeadroom } from "./ranked-storage";
 
 async function main() {
   const [capArg = "1", product, ...extra] = process.argv.slice(2);
   const cap = Number(capArg);
+  const model = EXPLANATION_MODELS.find(name => name === (process.env.TRADE_EXPLANATION_MODEL || EXPLANATION_MODEL));
+  if (!model) throw new Error("Unsupported Gemini model");
   if (!Number.isInteger(cap) || cap < 1 || cap > 20 || extra.length || (product && !Object.hasOwn(PRODUCTS, product))) {
     throw new Error("Usage: npm run generate:explanations -- [1–20 requests per Pacific day] [HS6]");
   }
@@ -26,28 +28,31 @@ async function main() {
         .order("published_at", { ascending: false }).order("id").limit(1).maybeSingle();
       if (error || !release) throw new Error("Published product snapshot unavailable");
       const ranking = release.ranked_summary as RankedRelease;
-      const prepared = ranking.rankings.map(result => ({ reporter: result.reporter, ...rankingEvidence(result) }));
+      const prepared = ranking.rankings.map(result => ({
+        reporter: result.reporter, ...rankingEvidence(result, model),
+        cacheHashes: EXPLANATION_MODELS.map(name => rankingEvidence(result, name).hash),
+      }));
       const candidates = prepared.filter(row => row.findings.length);
       counts.fallback += prepared.length - candidates.length;
       if (!candidates.length) continue;
 
       const { data: cache, error: cacheError } = await db.from("trade_ranked_explanations")
-        .select("snapshot_id,evidence_hash,findings").in("evidence_hash", candidates.map(row => row.hash));
+        .select("snapshot_id,evidence_hash,findings").in("evidence_hash", candidates.flatMap(row => row.cacheHashes));
       if (cacheError) throw new Error("Explanation cache unavailable");
       const cached = new Map(cache.map(row => [row.evidence_hash, row]));
       const rows = [];
       const misses = [];
-      const entry = (row: typeof candidates[number], findings: string[]) => ({
-        snapshot_id: release.id, reporter_code: row.reporter, evidence_hash: row.hash, findings,
+      const entry = (row: typeof candidates[number], findings: string[], evidenceHash = row.hash) => ({
+        snapshot_id: release.id, reporter_code: row.reporter, evidence_hash: evidenceHash, findings,
       });
       for (const row of candidates) {
-        const match = cached.get(row.hash);
+        const match = row.cacheHashes.map(hash => cached.get(hash)).find(Boolean);
         if (!match) {
           misses.push(row);
           continue;
         }
         traceFindings(row.findings, match.findings);
-        if (match.snapshot_id !== release.id) rows.push(entry(row, match.findings));
+        if (match.snapshot_id !== release.id) rows.push(entry(row, match.findings, match.evidence_hash));
         counts.cached++;
       }
       if (rows.length && (await db.from("trade_ranked_explanations").upsert(rows)).error) {
@@ -61,7 +66,7 @@ async function main() {
       const delay = lastRequestAt + 30_000 - Date.now();
       if (delay > 0) await setTimeout(delay);
       const { data: attempt, error: reserveError } = await db.rpc("reserve_trade_explanation_attempt", {
-        release_id: release.id, provider_model: EXPLANATION_MODEL, generation: EXPLANATION_VERSION,
+        release_id: release.id, provider_model: model, generation: EXPLANATION_VERSION,
         hashes: misses.map(row => row.hash), daily_cap: cap,
       });
       if (reserveError) throw new Error("Could not reserve a Gemini request");
@@ -75,7 +80,7 @@ async function main() {
       let status = "provider_error";
       let responseText: string | undefined;
       try {
-        responseText = await selectRankedFindings(ai, misses);
+        responseText = await selectRankedFindings(ai, misses, model);
       } catch (error) {
         counts.providerErrors++;
         const status = (error as { status?: unknown } | null)?.status;

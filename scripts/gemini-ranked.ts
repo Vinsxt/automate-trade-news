@@ -1,5 +1,5 @@
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
-import { EXPLANATION_MODEL, type rankingEvidence } from "../src/lib/trade/ranked-explanation";
+import type { ExplanationModel, rankingEvidence } from "../src/lib/trade/ranked-explanation";
 
 export function createRankedGemini(apiKey: string) {
   return new GoogleGenAI({
@@ -8,10 +8,10 @@ export function createRankedGemini(apiKey: string) {
   });
 }
 
-export async function selectRankedFindings(ai: GoogleGenAI, misses: ReturnType<typeof rankingEvidence>[]) {
+export async function selectRankedFindings(ai: GoogleGenAI, misses: ReturnType<typeof rankingEvidence>[], model: ExplanationModel) {
   // Send transformed signals only. Exact values, product, market and release IDs stay local.
   const response = await ai.models.generateContent({
-    model: EXPLANATION_MODEL,
+    model,
     contents: JSON.stringify(misses.map((row, slot) => ({
       slot, evidence: row.findings.map(({ id, signal }) => ({ id, signal })),
     }))),
