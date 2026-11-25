@@ -8,7 +8,13 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/**/*.test.ts"
+    "snapshot:pilot": "node --env-file-if-exists=.env.local --import tsx scripts/snapshot-pilot.ts",
+    "test": "tsx --test src/**/*.test.ts",
+    "ingest:trade": "node --env-file-if-exists=.env.local --import tsx scripts/ingest-trade.ts",
+    "publish:pilot": "node --env-file-if-exists=.env.local --import tsx scripts/publish-pilot.ts",
+    "publish:ranked": "node --env-file-if-exists=.env.local --import tsx scripts/publish-ranked.ts",
+    "backfill:ranked": "node --env-file-if-exists=.env.local --import tsx scripts/backfill-ranked.ts",
+    "generate:explanations": "node --env-file-if-exists=.env.local --import tsx scripts/generate-explanations.ts"
   },
   "dependencies": {
     "@google/genai": "^3.6.1",
@@ -22,12 +28,13 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@tailwindcss/turbopack": "4.3.3",
+    "@tailwindcss/postcss": "4.3.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
+    "postcss": "8.5.23",
     "tailwindcss": "4.3.3",
     "tsx": "^4.23.15",
     "typescript": "^5"

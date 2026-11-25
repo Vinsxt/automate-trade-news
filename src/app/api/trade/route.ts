@@ -1,7 +1,7 @@
 import { connection, NextResponse } from "next/server";
 
 import { getPilotDashboardData } from "@/lib/trade/dashboard";
-import { SupabaseConfigurationError } from "@/lib/supabase/admin";
+import { SupabaseReaderConfigurationError } from "@/lib/supabase/reader";
 import { createRequestContext, logApiEvent } from "@/lib/observability/request";
 import { tradeSelectionSchema } from "@/lib/validations/trade-selection";
 
@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     logApiEvent("trade_dashboard_loaded", context, { observationCount: data.observationCount, statusCode: 200 });
     return NextResponse.json({ data }, { headers: { "x-request-id": context.requestId } });
   } catch (error) {
-    if (error instanceof SupabaseConfigurationError) {
+    if (error instanceof SupabaseReaderConfigurationError) {
       logApiEvent("trade_dashboard_failed", context, { errorType: "database_not_configured", statusCode: 503 });
       return NextResponse.json(
         { error: { code: "DATABASE_NOT_CONFIGURED", message: "Database access is not configured" } },

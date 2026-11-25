@@ -68,13 +68,20 @@ export function normalizeComtradeResponse(input: unknown): TradeObservation[] {
 
 
 export function normalizePilotResponse(response: ComtradeResponse, period: string): TradeObservation[] {
+  return normalizeAnnualImports(response, { ...PILOT_QUERY, period });
+}
+
+export function normalizeAnnualImports(
+  response: ComtradeResponse,
+  query: { reporterCode: number; cmdCode: string; period: string; acceptOtherEditions?: boolean },
+): TradeObservation[] {
   if (response.data.some((row) =>
-    row.classificationCode !== PILOT_QUERY.classificationCode ||
+    (!query.acceptOtherEditions && row.classificationCode !== PILOT_QUERY.classificationCode) ||
     row.classificationSearchCode !== PILOT_QUERY.classificationSearchCode ||
-    row.reporterCode !== PILOT_QUERY.reporterCode ||
-    row.cmdCode !== PILOT_QUERY.cmdCode ||
+    row.reporterCode !== query.reporterCode ||
+    row.cmdCode !== query.cmdCode ||
     row.flowCode !== PILOT_QUERY.flowCode ||
-    row.period !== period ||
+    row.period !== query.period ||
     row.typeCode !== "C" ||
     row.freqCode !== "A"
   )) {

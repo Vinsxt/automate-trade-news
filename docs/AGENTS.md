@@ -1,7 +1,7 @@
 # Engineering instructions
 
-Read the [PRD](PRD.md) for product scope and acceptance criteria and the
-[pilot runbook](vertical-slice.md) for current setup. Surface conflicts before changing
+Read the [PRD](PRD.md) for product scope, the [architecture](architecture.md) for the ranked
+release, and the [pilot runbook](vertical-slice.md) for current setup. Surface conflicts before changing
 product scope, schema semantics, or calculation definitions.
 
 ## Stack and boundaries
@@ -10,12 +10,11 @@ product scope, schema semantics, or calculation definitions.
   lucide-react, and Zod stack. Vercel is the initial hosting target.
 - Use Supabase PostgreSQL with `@supabase/supabase-js` and SQL migrations in
   `supabase/migrations/`. Use `@supabase/ssr` for cookie-aware auth when introduced.
-- Keep route handlers in `src/app/api/`. Validate requests, invoke domain functions in
-  `src/lib/`, and return consistent responses with appropriate status codes.
-  The pilot uses `GET /api/trade`, `POST /api/admin/ingest`, and
-  `POST /api/ai/analyze`. Add product and market lookup routes as selection expands.
-- Keep UN Comtrade and Gemini (`@google/genai`) calls server-side. Keep pure
-  calculations in `src/lib/analytics/` and isolate external I/O.
+- The public Next.js app reads published snapshots through a least-privilege reader.
+  Validate selectors and keep ranking, detail, quality and explanations on one snapshot.
+- Restrict Comtrade, privileged database writes and Gemini to the operator-run batch.
+  Precompute in TypeScript using the existing analytics and validation modules.
+  The legacy ingestion and AI POST URLs return HTTP 410.
 - Get approval before adding a separate backend or Python service, microservices,
   an ORM, new infrastructure such as Redis or a vector database, native apps,
   an additional AI provider, or a paid data provider.
@@ -29,20 +28,21 @@ product scope, schema semantics, or calculation definitions.
   reported zero. Keep mirror exports separate from destination-reported imports.
   Apply the PRD’s matching, denominator, and year-comparison rules in the backend.
   Keep numeric precision appropriate for the calculation.
-- Keep imports narrow and idempotent. Bound upstream work, handle rate limits,
+- Checkpoint imports by candidate and period. Keep retries idempotent. Bound upstream work, handle rate limits,
   partial results and transient failures, and retain run status and safe error details.
   Add pagination or background work when coverage or request duration requires it.
-- Build Gemini evidence from backend calculations. Bound and validate input and
-  output with Zod, preserve the dashboard on provider failure, and restrict the
-  model to the evidence supplied. Keep free-form input away from database and tool access.
+- Version the candidate cohort and scoring method. Preserve component values, exclusions,
+  observation revisions and run references so each published score can be reproduced.
+- Validate generated findings against the batch evidence. Cache by canonical evidence
+  hash and generation version, and serve the deterministic fallback on failure.
 - Keep periods, units, source, and caveats visible on desktop and mobile. Include
   loading, empty, stale-data, and error states alongside accessible charts and tables.
 
 ## Security and verification
 
-- Authorize admin operations server-side and rate-limit costly public operations.
-  Keep the Supabase service-role key and provider keys server-only, enforce RLS on
-  user-owned tables, and keep client and privileged Supabase access separate.
+- Authorize pilot admin operations server-side. In the target deployment, grant the
+  reader access only to published results. Keep batch secrets out of the web runtime.
+  Apply and test RLS if user-owned records are introduced.
 - Keep raw upstream errors, sensitive headers, and stack traces out of client responses
   and logs. Limit collection of personal information.
 - Prefer existing modules and dependencies. Validate external payloads, make small
@@ -50,7 +50,6 @@ product scope, schema semantics, or calculation definitions.
   behavior when relevant.
 - Run `npm test`, `npm run lint`, `npm run typecheck`, and `npm run build` as relevant.
   Report the checks actually run, along with any live integrations still unverified.
-
 
 ## Secrets and Security
 

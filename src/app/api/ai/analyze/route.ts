@@ -1,5 +1,3 @@
-import { handleTradeAnalysis } from "@/lib/api/trade-analysis";
-
-export async function POST(request: Request) {
-  return handleTradeAnalysis(request);
+export function POST() {
+  return Response.json({ error: { code: "OPERATOR_ONLY", message: "Trade snapshots are prepared offline." } }, { status: 410 });
 }

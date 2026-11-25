@@ -1,67 +1,68 @@
-import { calculateTradeSummary, type TradeObservationRow } from "@/lib/analytics/trade";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { PILOT_QUERY } from "@/lib/trade/pilot";
+import type { ImportYear, Movement, SupplierYear } from "@/lib/analytics/trade";
+import { createSupabaseReader } from "@/lib/supabase/reader";
 import type { TradeSelection } from "@/lib/validations/trade-selection";
 
-export async function getPilotDashboardData(selection: TradeSelection = {}) {
-  const supabase = createSupabaseAdminClient();
-  const [observationsResult, runResult] = await Promise.all([
-    supabase
-      .from("trade_observations")
-      .select("period,partner_code,partner_iso,primary_value,net_weight,is_reported,is_aggregate", { count: "exact" })
-      .eq("reporter_code", Number(selection.market ?? PILOT_QUERY.reporterCode))
-      .eq("type_code", "C")
-      .eq("frequency_code", "A")
-      .eq("flow_code", PILOT_QUERY.flowCode)
-      .eq("product_code", selection.product ?? PILOT_QUERY.cmdCode)
-      .eq("classification_code", PILOT_QUERY.classificationCode)
-      .eq("classification_search_code", PILOT_QUERY.classificationSearchCode)
-      .eq("partner2_code", 0)
-      .eq("customs_code", "C00")
-      .eq("mode_of_transport_code", "0")
-      .eq("mode_of_transport", 0)
-      .in("period", [...PILOT_QUERY.periods])
-      .order("period"),
-    supabase
-      .from("ingestion_runs")
-      .select("status,completed_at,records_received,records_written")
-      .eq("source", "UN_COMTRADE")
-      .order("started_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
 
-  if (observationsResult.error || runResult.error) {
-    throw new Error("Could not load trade dashboard data");
-  }
+interface PeriodCoverage {
+  observationCount: number;
+  notReported: number;
+  aggregate: number;
+}
 
-  const observations = (observationsResult.data ?? []) as TradeObservationRow[];
-  if (observationsResult.count !== observations.length) {
-    throw new Error("Trade dashboard data exceeded the query limit");
-  }
+export interface PublishedPilotDashboard {
+  imports: ImportYear[];
+  supplierYears: Record<string, SupplierYear[]>;
+  movements: Record<string, Movement[]>;
+  coverage: Record<string, PeriodCoverage>;
+}
 
+export function selectPilotDashboard(
+  payload: PublishedPilotDashboard,
+  publishedAt: string | null,
+  selection: TradeSelection = {},
+) {
   const includesPeriod = (period: string) =>
     (!selection.from || period >= selection.from) && (!selection.to || period <= selection.to);
-  const selectedObservations = observations.filter(({ period }) => includesPeriod(period));
-  const summary = calculateTradeSummary(observations);
-  const imports = summary.imports.filter(({ period }) => includesPeriod(period));
+
+  const imports = payload.imports.filter(({ period }) => includesPeriod(period));
   const latestPeriod = imports.at(-1)?.period ?? null;
-  const sourceFlags = {
-    notReported: selectedObservations.filter((row) => row.is_reported === false).length,
-    aggregate: selectedObservations.filter((row) => row.is_aggregate === true).length,
-  };
+  const totals = { observationCount: 0, notReported: 0, aggregate: 0 };
+  for (const [period, coverage] of Object.entries(payload.coverage)) {
+    if (!includesPeriod(period)) continue;
+    totals.observationCount += coverage.observationCount;
+    totals.notReported += coverage.notReported;
+    totals.aggregate += coverage.aggregate;
+  }
 
   return {
     imports,
-    availablePeriods: summary.imports.map(({ period }) => period),
-    supplierYears: Object.fromEntries([...summary.supplierYears].filter(([period]) => includesPeriod(period))),
-    movements: latestPeriod ? summary.movements.get(latestPeriod) ?? [] : [],
+    availablePeriods: payload.imports.map(({ period }) => period),
+    supplierYears: Object.fromEntries(Object.entries(payload.supplierYears).filter(([period]) => includesPeriod(period))),
+    movements: latestPeriod ? payload.movements[latestPeriod] ?? [] : [],
     latestPeriod,
-    latestSuppliers: latestPeriod ? summary.supplierYears.get(latestPeriod) ?? [] : [],
-    sourceFlags,
-    lastRun: runResult.data,
-    observationCount: selectedObservations.length,
+    latestSuppliers: latestPeriod ? payload.supplierYears[latestPeriod] ?? [] : [],
+    sourceFlags: { notReported: totals.notReported, aggregate: totals.aggregate },
+    publishedAt,
+    observationCount: totals.observationCount,
   };
+}
+
+export async function getPilotDashboardData(selection: TradeSelection = {}) {
+  const { data, error } = await createSupabaseReader()
+    .from("trade_snapshots")
+    .select("published_at,pilot_dashboard")
+    .not("pilot_dashboard", "is", null)
+    .order("published_at", { ascending: false, nullsFirst: false })
+    .order("id")
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error("Could not load the published trade dashboard");
+  return selectPilotDashboard(
+    data?.pilot_dashboard ?? { imports: [], supplierYears: {}, movements: {}, coverage: {} },
+    data?.published_at ?? null,
+    selection,
+  );
 }
 
 export type PilotDashboardData = Awaited<ReturnType<typeof getPilotDashboardData>>;

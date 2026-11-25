@@ -1,5 +1,9 @@
 # India solar import pilot
 
+The Phase 1 dashboard reads published results from Supabase. The operator uses
+the commands below to load data and publish a snapshot. The ranking catalog
+and additional indicators follow the [target architecture](architecture.md).
+
 The first runnable workflow tracks India (reporter 699) imports of HS 854142
 (photovoltaic cells not assembled in modules or panels) from partner markets.
 The dashboard uses annual UN Comtrade HS 2022 (H6) primary trade values and shows supplier
@@ -8,32 +12,52 @@ percentage-point differences between consecutive years.
 
 ## Local setup
 
-1. Configure `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in the
-   ignored `.env.local` file. Keep the service-role key server-side.
-2. `INGEST_ADMIN_TOKEN` is generated in `.env.local`. Use its value in the
-   password field on the dashboard when importing a year.
-3. `COMTRADE_API_KEY` is optional for the public preview endpoint used by this
-   pilot.
-4. Restart the development server after changing environment variables, then
-   run `npm run dev` and open `http://localhost:3000`.
-5. Apply the product, market, and year filters. The initial catalog contains
-   India and HS 854142. The supplier table shows the latest year in the selected
-   range. Year-over-year changes use the preceding calendar year where available,
-   even when it falls outside the displayed range.
-6. Import one year at a time from Data operations. The page refreshes after a
-   successful import.
-7. Set `GEMINI_API_KEY` in `.env.local` to enable explanations. Enter the same
-   local admin token and choose **Explain market data** for the displayed year.
-   The request sends bounded trade evidence to Gemini, which selects the
-   findings. The server renders the figures from the original evidence.
+1. Apply the versioned SQL files in `supabase/migrations/` to a development
+   Supabase database. A migration is a database change stored in Git so each
+   environment can apply the same schema and access rules in order.
+2. Configure `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` for
+   the Next.js app. Load `SUPABASE_SERVICE_ROLE_KEY` and the registered
+   `COMTRADE_API_KEY` into the operator command environment only.
+3. Run the operator commands and start the dashboard.
+
+```bash
+npm run ingest:trade -- 699 854142 2025
+npm run publish:pilot
+npm run dev
+```
+
+Run ingestion once per reporter, HS6 product and year. One operator process
+should run at a time. Repeating a slice updates observations by their source
+key, while each run gets its own log entry. The command rejects capped slices,
+retries transient failures up to three total attempts, and enforces rolling
+24-hour call and row budgets. Record counts and database size checks are
+conservative and include room for existing data.
+
+Row Level Security (RLS) is a PostgreSQL rule that decides which rows a role
+can read or write. Here the app's anonymous role can read published snapshot
+rows only. Source inputs, run logs, and publication operations use the
+operator role. The pilot website becomes usable once a snapshot is published.
 
 ## Checks
 
-Run `npm test` for the normalization, ingestion validation, and analytics unit
-tests. `npm run typecheck` and `npm run lint` check the application code.
-The route tests cover authorization, request validation, selected-period
-metrics, and the analysis response contract. A live import should be exercised
-one year at a time because the public Comtrade preview can be rate-limited.
+Run `npm test`, `npm run typecheck`, and `npm run lint`. Apply the SQL test
+`supabase/tests/trade_snapshot_foundation.sql` to a disposable Supabase
+database after both migrations. It verifies repeat ingestion upserts,
+publication idempotence, budget pacing, and reader permissions.
+
+## Recompute a local snapshot
+
+With the pilot Supabase settings loaded, choose a new path in a private directory
+outside the repository.
+
+```bash
+npm run snapshot:pilot -- /path/to/private/india-solar-snapshot.json
+```
+
+The command reads the existing India HS 854142 observations and precomputes the
+same totals, shares, ranks and movements as the dashboard. The file includes the
+exact metric inputs and their ingestion-run references, so keep it private. The
+snapshot ID stays the same for identical inputs and calculations.
 
 ## Interpretation limits
 
@@ -44,7 +68,78 @@ one year at a time because the public Comtrade preview can be rate-limited.
 - Trade value is a value measure, not physical volume or evidence of causation.
 - Partner names use a small pilot mapping when the source response omits names;
   otherwise the dashboard shows the partner code.
-- The public preview may be rate-limited. Import one year per request and retry
-  later if UN Comtrade returns a rate-limit response.
-- Gemini explanations describe calculated values; they do not establish causes
-  or predict commercial outcomes.
+- Ingestion uses the registered API. A completed empty slice is distinct from a
+  failed or throttled request.
+- The current reader serves precomputed pilot metrics. Cached explanations
+  are planned for Phase 4.
+- The pilot snapshot includes supplier unit values in USD per kilogram and
+  Indonesia’s gap against each comparable supplier. Missing or estimated weights
+  leave the comparison unavailable. The pilot is a single destination, so a
+  ranked shortlist requires a separate multi-market cohort.
+
+## Publish a ranked cohort
+
+The home page and `/rankings` show published rankings. The India solar pilot
+is at `/pilot`. The ranking and drill-down are App Router Server Components.
+They read summaries on the server and send rendered UI to the browser. Recharts
+stays in a client component so the import trend can respond to user interaction.
+
+After applying the ranked-snapshot migration, ingest all ten candidate markets
+for one product with `npm run ingest:trade -- <reporter> <HS6> <year>` for each
+year from 2022 through 2025. The [research manifest](research.md#candidate-pool-and-opportunity-score)
+lists valid combinations. A completed empty slice can be screened as unranked.
+A failed or missing slice blocks publication.
+
+```bash
+npm run publish:ranked -- 090111
+```
+
+The publisher writes the ranking and drill-down together. Links pin the
+snapshot ID so a newer publication cannot change the evidence mid-review.
+Run `supabase/tests/ranked_snapshot_publication.sql` against a disposable
+database to verify that readers see published details only and that a failed
+publication exposes no partial results.
+
+### Backfill the remaining catalog
+
+Apply the storage-measurement migration before running `npm run backfill:ranked`.
+It groups missing products by reporter and year for the registered Comtrade API.
+Each completed slice still has its own ingestion run. If a grouped response hits
+its row limit, the runner splits the request. Reruns skip completed slices.
+
+The operator measures database size before every group and each ranked publication.
+A 145 MB stop leaves headroom below 30% of the 500 MB Free allowance. Comtrade
+attempt and row budgets still apply. Source rows returned under a different HS
+edition can be retained privately and cannot qualify as HS 2022 ranking evidence.
+
+## Generate ranked market explanations
+
+After publishing rankings, apply the ranked explanations migration and run:
+
+```bash
+npm run generate:explanations -- 1 090111
+```
+
+The arguments are the project's allowed requests per Pacific day (1–20,
+default 1) and an optional HS6 code. Check the active limits in AI Studio
+before raising the daily cap. With no HS6 argument, the command walks the
+entire catalog. Each product with cache misses makes one request covering
+its eligible markets. Supabase reserves quota before calls, counts failures
+and allows one retry per evidence and quota day after a provider error. The
+batch spaces calls and stops after a provider error. Rerun to fill remaining
+misses. If Flash-Lite is unavailable and the project has verified Free-tier
+access to Gemini 3.6 Flash, run with `TRADE_EXPLANATION_MODEL=gemini-3.6-flash`.
+Both model choices use the same application cap and reuse validated cache entries.
+The generator checks the same 145 MB database guard as backfill.
+
+Gemini receives slot numbers and derived categories. The app constructs
+sentences and figures from the snapshot and validates selected finding IDs
+before use. The command reports requests, attempted market explanations, pass rate,
+cache hits and fallbacks. A response that fails tracing counts against every
+market included in that attempt. The SQL test under
+`supabase/tests/ranked_explanations.sql` verifies the cache visibility and
+daily budget. Use a disposable database for the fixture.
+
+The public market page shows stored findings for its reference window and
+a labeled local summary for a different window or a cache miss. The website
+keeps working during a provider outage or before the cache is populated.
