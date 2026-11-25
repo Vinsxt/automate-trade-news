@@ -27,3 +27,11 @@ export async function readRankedMarket(snapshotId: string, reporter: number) {
   if (error) throw new Error("Could not load published market details");
   return data?.dashboard as PublishedPilotDashboard | undefined;
 }
+
+export async function readRankedExplanation(snapshotId: string, reporter: number, hash: string) {
+  const { data, error } = await createSupabaseReader().from("trade_ranked_explanations")
+    .select("findings").eq("snapshot_id", snapshotId).eq("reporter_code", reporter)
+    .eq("evidence_hash", hash).maybeSingle();
+  if (error) throw new Error("Could not load the cached market explanation");
+  return data?.findings;
+}

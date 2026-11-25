@@ -5,7 +5,8 @@ import { formatNumber, RankingShell, SnapshotDate } from "@/components/ranking-s
 import { TradeDashboard } from "@/components/trade-dashboard";
 import { selectPilotDashboard } from "@/lib/trade/dashboard";
 import { COHORT_PERIODS, MARKETS, PRODUCTS } from "@/lib/trade/cohort";
-import { readRankedMarket, readRankedRelease } from "@/lib/trade/ranked-reader";
+import { rankingEvidence, summarizeExploredYears, traceFindings } from "@/lib/trade/ranked-explanation";
+import { readRankedExplanation, readRankedMarket, readRankedRelease } from "@/lib/trade/ranked-reader";
 
 type Props = PageProps<"/rankings/[hs6]/[reporter]">;
 
@@ -27,6 +28,16 @@ async function Market({ params, searchParams }: Props) {
   const invalidRange = Boolean((query.from && !from) || (query.to && !to) || (from && to && from > to));
   const dashboard = selectPilotDashboard(payload, release.publishedAt, invalidRange ? {} : { from, to });
   const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact" });
+
+  const evidence = rankingEvidence(result);
+  const exploring = !invalidRange && ((from && from !== COHORT_PERIODS[0]) || (to && to !== COHORT_PERIODS.at(-1)));
+  const cached = !exploring && evidence.findings.length
+    ? await readRankedExplanation(snapshotId, code, evidence.hash).then(ids => traceFindings(evidence.findings, ids)).catch(() => null)
+    : null;
+  const findings = cached ?? (!exploring && evidence.findings.length
+    ? evidence.findings.map(finding => finding.text)
+    : summarizeExploredYears(dashboard));
+  const summaryPeriod = exploring ? `${from ?? COHORT_PERIODS[0]}–${to ?? COHORT_PERIODS.at(-1)}` : evidence.period;
 
   return <>
     <header className="space-y-2">
@@ -56,6 +67,12 @@ async function Market({ params, searchParams }: Props) {
       </form>
       {invalidRange && <p role="alert">Choose a start year on or before the end year.</p>}
     </search>
+    <section aria-labelledby="market-findings" className="space-y-2 rounded border border-stone-300 bg-white p-5">
+      <h2 id="market-findings" className="text-xl font-semibold">Market findings · {summaryPeriod}</h2>
+      <p className="text-sm text-stone-700">{cached ? "Selected by Gemini · Verified against this snapshot" : "Fallback · Summary from this snapshot"}</p>
+      <ul className="list-disc space-y-1 pl-5">{findings.map(finding => <li key={finding}>{finding}</li>)}</ul>
+      <p className="text-sm text-stone-700">Source: UN Comtrade. Import value alone does not establish volume or explain what caused a change.</p>
+    </section>
     <TradeDashboard dashboard={dashboard} marketName={result.marketName} />
   </>;
 }
