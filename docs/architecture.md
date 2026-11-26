@@ -44,7 +44,17 @@ flowchart LR
 Next.js reads only published summaries through a role with SELECT access to those
 results. Keep source payloads, writer credentials and provider keys in the batch
 environment. Retire the pilot’s import and live-explanation routes from the public
-deployment. Public requests incur zero Comtrade and Gemini calls.
+deployment. Public data reads incur zero Comtrade and Gemini calls.
+
+The green coffee outlook has a dedicated Next.js POST route. It reads published
+evidence, checks the private `ai_analyses` cache keyed by normalized evidence,
+prompt version and model, then calls Gemini only on an allowed miss. The route
+and operator pre-generation use the same service and transactional quota
+reservation. Visitors can generate only for the current green coffee release.
+Older pinned releases can read saved results. The generation timestamp is
+immutable. If generation fails, the service displays a dated previous analysis
+or a deterministic outlook. The dashboard's 1.5-second minimum loading display
+runs entirely in the browser.
 
 For sizing, 15 products × 10 markets × 5 years × 200 partners is about 150,000
 observations before revisions or indexes. Measure database size with representative

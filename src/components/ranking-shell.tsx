@@ -1,16 +1,16 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { TradeHeader } from "./trade-header";
 
-export function RankingShell({ children }: { children: ReactNode }) {
+export function RankingShell({ children, beginner = false }: { children: ReactNode; beginner?: boolean }) {
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 space-y-6 px-5 py-8 sm:px-8">
-      <nav aria-label="Trade research" className="flex flex-wrap gap-x-6 gap-y-2 border-b border-stone-300 pb-4 text-sm font-semibold text-emerald-900">
-        <Link href="/rankings">Opportunity ranking</Link>
-        <Link href="/methodology">Methodology</Link>
-        <Link href="/pilot">India solar pilot</Link>
-      </nav>
+    <>
+      <TradeHeader />
+      <main id="main-content" tabIndex={-1} className={`mx-auto w-full flex-1 space-y-6 px-4 py-7 sm:px-8 sm:py-10 ${beginner ? "max-w-5xl" : "max-w-6xl"}`}>
       {children}
-    </main>
+      <footer className="border-t border-line pt-3 text-sm text-muted"><Link className="inline-flex min-h-11 items-center underline" href="/methodology">Methodology</Link></footer>
+      </main>
+    </>
   );
 }
 

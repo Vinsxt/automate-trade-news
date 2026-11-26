@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { formatNumber, RankingShell, SnapshotDate } from "@/components/ranking-shell";
+import { ResearchSkeleton } from "@/components/research-skeleton";
 import { TradeDashboard } from "@/components/trade-dashboard";
 import { selectPilotDashboard } from "@/lib/trade/dashboard";
 import { COHORT_PERIODS, MARKETS, PRODUCTS } from "@/lib/trade/cohort";
@@ -41,42 +42,44 @@ async function Market({ params, searchParams }: Props) {
 
   return <>
     <header className="space-y-2">
-      <Link className="text-sm font-medium text-emerald-900 underline" href={`/rankings?product=${hs6}&snapshot=${snapshotId}`}>Back to this ranking</Link>
-      <h1 className="text-3xl font-semibold">{result.marketName} · {release.ranking.productName}</h1>
-      <p className="text-sm text-stone-700">Destination-reported imports · HS 2022 · {hs6} · <SnapshotDate publishedAt={release.publishedAt} stale={release.stale} /> · Source: UN Comtrade</p>
+      <Link className="text-sm font-medium text-brand-strong underline" href={`/rankings?product=${hs6}&snapshot=${snapshotId}`}>Back to this ranking</Link>
+      <h1 className="page-title">{result.marketName}</h1>
+      <p className="text-base font-medium text-ink sm:text-lg">{release.ranking.productName}</p>
+      <p className="text-sm text-secondary">Destination-reported imports · HS 2022 · {hs6} · <SnapshotDate publishedAt={release.publishedAt} stale={release.stale} /> · Source: UN Comtrade</p>
     </header>
-    <section className="space-y-2 rounded border border-stone-300 bg-white p-5">
-      <h2 className="text-xl font-semibold">Ranking evidence · {result.referenceYear - 3}–{result.referenceYear}</h2>
-      <p>{result.score === null ? `Unranked · ${result.reason?.replaceAll("_", " ") ?? "unavailable"}` : `${formatNumber.format(result.score)} / 100 · ${result.hasWeightComparison ? "Comparable weight data" : "Limited weight coverage"}`}</p>
-      {result.components && <p className="text-sm text-stone-700">
-        Market size {currency.format(result.components.marketSize)} · annualized import growth {formatNumber.format(result.components.importGrowth)}% · Indonesia’s share gain {formatNumber.format(result.components.indonesiaShareGain)} pp
-      </p>}
-      <p className="text-sm text-stone-700">{result.eligibleCount} eligible markets · {result.method} · <Link className="underline" href="/methodology">How the score is calculated</Link></p>
-    </section>
     <search>
-      <form action={`/rankings/${hs6}/${code}`} method="get" className="flex flex-wrap items-end gap-3">
+      <form action={`/rankings/${hs6}/${code}`} method="get" className="surface flex flex-wrap items-end gap-3 p-3 sm:p-4">
         <input type="hidden" name="snapshot" value={snapshotId} />
         {([{ name: "from", label: "From year", value: from ?? COHORT_PERIODS[0] }, { name: "to", label: "To year", value: to ?? COHORT_PERIODS[3] }] as const).map(field => (
           <label key={field.name} className="text-sm font-medium">{field.label}
-            <select name={field.name} defaultValue={field.value} className="mt-1 block min-h-12 rounded border border-stone-500 bg-white px-3">
+            <select name={field.name} defaultValue={field.value} className="field-control mt-1 block">
               {COHORT_PERIODS.map(year => <option key={year}>{year}</option>)}
             </select>
           </label>
         ))}
-        <button className="min-h-12 rounded bg-emerald-900 px-4 text-white">Apply years</button>
+        <button className="action-primary">Apply years</button>
       </form>
       {invalidRange && <p role="alert">Choose a start year on or before the end year.</p>}
     </search>
-    <section aria-labelledby="market-findings" className="space-y-2 rounded border border-stone-300 bg-white p-5">
-      <h2 id="market-findings" className="text-xl font-semibold">Market findings · {summaryPeriod}</h2>
-      <p className="text-sm text-stone-700">{cached ? "Selected by Gemini · Verified against this snapshot" : "Fallback · Summary from this snapshot"}</p>
-      <ul className="list-disc space-y-1 pl-5">{findings.map(finding => <li key={finding}>{finding}</li>)}</ul>
-      <p className="text-sm text-stone-700">Source: UN Comtrade. Import value alone does not establish volume or explain what caused a change.</p>
+    <TradeDashboard dashboard={dashboard} marketName={result.marketName} context={<div className="grid gap-4 lg:grid-cols-2">
+    <section className="surface space-y-2 p-5">
+      <h2 className="section-title">Ranking evidence · {result.referenceYear - 3}–{result.referenceYear}</h2>
+      <p>{result.score === null ? `Unranked · ${result.reason?.replaceAll("_", " ") ?? "unavailable"}` : `${formatNumber.format(result.score)} / 100 · ${result.hasWeightComparison ? "Comparable weight data" : "Limited weight coverage"}`}</p>
+      {result.components && <p className="text-sm text-secondary">
+        Market size {currency.format(result.components.marketSize)} · annualized import growth {formatNumber.format(result.components.importGrowth)}% · Indonesia’s share gain {formatNumber.format(result.components.indonesiaShareGain)} pp
+      </p>}
+      <p className="text-sm text-secondary">{result.eligibleCount} eligible markets · {result.method} · <Link className="underline" href="/methodology">How the score is calculated</Link></p>
     </section>
-    <TradeDashboard dashboard={dashboard} marketName={result.marketName} />
+    <section aria-labelledby="market-findings" className="surface space-y-2 p-5">
+      <h2 id="market-findings" className="section-title">Market findings · {summaryPeriod}</h2>
+      <p className="text-sm text-secondary">{cached ? "Selected by Gemini · Verified against this snapshot" : "Fallback · Summary from this snapshot"}</p>
+      <ul className="list-disc space-y-1 pl-5">{findings.map(finding => <li key={finding}>{finding}</li>)}</ul>
+      <p className="text-sm text-secondary">Source: UN Comtrade. Import value alone does not establish volume or explain what caused a change.</p>
+    </section>
+    </div>} />
   </>;
 }
 
 export default function MarketPage(props: Props) {
-  return <RankingShell><Suspense fallback={<p role="status">Loading market evidence…</p>}><Market {...props} /></Suspense></RankingShell>;
+  return <RankingShell><Suspense fallback={<ResearchSkeleton label="Loading market evidence" />}><Market {...props} /></Suspense></RankingShell>;
 }
