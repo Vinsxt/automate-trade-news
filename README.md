@@ -88,7 +88,7 @@ The Recharts panel loads separately from the server-rendered market metrics
 and tables.
 
 The landing controls use the shadcn/ui New York Button, with registry aliases
-in `components.json`. A Three.js globe highlighting Indonesia rotates above
-muted daylight sea footage and moves upward as visitors scroll toward the
-catalog. Visitors can pause both. Reduced-motion users see a still frame and
-static globe. Browsers without WebGL use the static globe with the same video.
+in `components.json`. A Three.js globe highlighting Indonesia rotates over
+an emerald backdrop and moves upward as visitors scroll toward the catalog.
+Visitors can pause the globe. Reduced-motion settings and browsers without
+WebGL use a static globe.

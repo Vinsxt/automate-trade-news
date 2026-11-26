@@ -10,18 +10,15 @@ type Globe = Awaited<ReturnType<typeof mountGlobe>>;
 
 export function ExportGlobe() {
   const mount = useRef<HTMLDivElement>(null);
-  const footage = useRef<HTMLVideoElement>(null);
   const globe = useRef<Globe | null>(null);
   const scenePaused = useRef(false);
   const syncScene = useRef<(() => void) | null>(null);
   const [ready, setReady] = useState(false);
-  const [footageStarted, setFootageStarted] = useState(false);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     const host = mount.current;
-    const video = footage.current;
-    if (!host || !video) return;
+    if (!host) return;
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let disposed = false;
     let visible = false;
@@ -31,12 +28,6 @@ export function ExportGlobe() {
     const sync = async () => {
       if (disposed) return;
       const active = visible && !document.hidden && !motion.matches && !scenePaused.current;
-      if (active) {
-        if (!video.getAttribute("src")) video.src = "/trade/daylight-sea.mp4";
-        if (video.paused) void video.play().catch(() => {});
-      } else {
-        video.pause();
-      }
       if (globe.current) {
         globe.current.setRunning(active && !unavailable);
         return;
@@ -73,7 +64,6 @@ export function ExportGlobe() {
     return () => {
       disposed = true;
       syncScene.current = null;
-      video.pause();
       observer.disconnect();
       document.removeEventListener("visibilitychange", sync);
       motion.removeEventListener("change", sync);
@@ -83,18 +73,13 @@ export function ExportGlobe() {
   }, []);
 
   return <>
-    <div aria-hidden="true" className="landing-sea pointer-events-none fixed inset-0">
-      <video ref={footage} muted playsInline loop preload="none" tabIndex={-1}
-        className={`size-full object-cover motion-safe:transition-opacity motion-reduce:hidden ${footageStarted ? "opacity-100" : "opacity-0"}`}
-        onPlaying={() => setFootageStarted(true)} onError={() => setFootageStarted(false)} />
-    </div>
-    <div aria-hidden="true" className="landing-wash pointer-events-none fixed inset-0" />
+    <div aria-hidden="true" className="landing-field pointer-events-none fixed inset-0" />
     <div className={`landing-poster pointer-events-none absolute motion-safe:transition-opacity motion-safe:duration-500 ${ready ? "opacity-0" : "opacity-100"}`} aria-hidden="true">
-      <Image src="/trade/globe-poster.webp" alt="" fill fetchPriority="high" sizes="(min-width: 900px) 50vw, 85vw" className="object-contain" />
+      <Image src="/trade/globe-emerald-poster.webp" alt="" fill fetchPriority="high" sizes="(min-width: 900px) 50vw, 85vw" className="object-contain" />
     </div>
     <div ref={mount} aria-hidden="true" data-testid="globe-scene"
       className={`pointer-events-none fixed inset-0 motion-safe:transition-opacity motion-safe:duration-500 ${ready ? "opacity-100" : "opacity-0"}`} />
-    {(ready || footageStarted) && <Button type="button" variant="outline" size="icon"
+    {ready && <Button type="button" variant="outline" size="icon"
       className="fixed bottom-4 right-4 z-20 border-control text-brand-strong shadow-sm motion-reduce:hidden sm:bottom-6 sm:right-6"
       aria-label={paused ? "Resume scene motion" : "Pause scene motion"}
       onClick={() => {

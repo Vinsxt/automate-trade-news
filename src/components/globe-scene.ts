@@ -11,7 +11,7 @@ export async function mountGlobe(host: HTMLElement, onContextLost: () => void) {
   const context = canvas.getContext("webgl2", { alpha: true, antialias: true });
   if (!context) throw new Error("WebGL2 is unavailable");
   const renderer = new WebGLRenderer({ canvas, context, alpha: true, antialias: true });
-  const texture = await new TextureLoader().loadAsync("/trade/globe-map.webp").catch(error => {
+  const texture = await new TextureLoader().loadAsync("/trade/globe-emerald-map.webp").catch(error => {
     renderer.dispose();
     renderer.forceContextLoss();
     throw error;
@@ -30,19 +30,19 @@ export async function mountGlobe(host: HTMLElement, onContextLost: () => void) {
   scene.add(axis);
 
   const geometry = new SphereGeometry(1, 56, 40);
-  const material = new MeshPhongMaterial({ map: texture, shininess: 12, specular: new Color("#2d5f94") });
+  const material = new MeshPhongMaterial({ map: texture, shininess: 12, specular: new Color("#20664c") });
   earth.add(new Mesh(geometry, material));
 
   const latitude = -6.21 * radians;
   const longitude = 106.85 * radians;
   const surface = new Vector3(Math.cos(latitude) * Math.cos(longitude), Math.sin(latitude), -Math.cos(latitude) * Math.sin(longitude));
   const markerGeometry = new SphereGeometry(0.021, 12, 8);
-  const markerMaterial = new MeshBasicMaterial({ color: "#99f6e4" });
+  const markerMaterial = new MeshBasicMaterial({ color: "#00e59b" });
   const marker = new Mesh(markerGeometry, markerMaterial);
   marker.position.copy(surface.multiplyScalar(1.008));
   earth.add(marker);
 
-  scene.add(new HemisphereLight("#f5fbff", "#82a5cd", 1.6));
+  scene.add(new HemisphereLight("#eefff6", "#4a9c77", 1.6));
   const sunlight = new DirectionalLight("#ffffff", 1.1);
   sunlight.position.set(-3, 3, 5);
   scene.add(sunlight);

@@ -116,7 +116,7 @@ export function ImportControls({ explanationPeriod }: { explanationPeriod: strin
         <button
           type="submit"
           disabled={busy || analyzing}
-          className="w-full bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-55"
+          className="w-full bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-55"
         >
           {busy ? "Fetching from UN Comtrade…" : `Import ${period}`}
         </button>

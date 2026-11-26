@@ -66,7 +66,7 @@ async function MarketResearch({ params, searchParams }: Props) {
           if (assistant) params.set("view", "assistant");
           return <li key={row.reporter}>
             <Link href={`${currentUrl}?${params}`} prefetch={false} aria-current={active ? "page" : undefined}
-              className={`interactive-row flex min-h-12 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${active ? "border-primary bg-primary text-white hover:bg-primary-hover" : "border-line bg-surface text-ink"}`}>
+              className={`interactive-row flex min-h-12 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm font-semibold ${active ? "border-primary bg-primary text-primary-foreground hover:bg-primary-hover" : "border-line bg-surface text-ink"}`}>
               {row.marketName} <ArrowUpRight size={15} className="shrink-0" aria-hidden="true" />
             </Link>
           </li>;

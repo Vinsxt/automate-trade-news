@@ -1,70 +1,44 @@
 @import "tailwindcss";
 
 :root {
-  color-scheme: light;
-  --brand: #0b1628;
-  --background: #f5f7fa;
-  --foreground: #0f172a;
+  color-scheme: dark;
+  --brand: #ffffff;
+  --background: #080d0a;
+  --foreground: var(--brand);
   --ink: var(--foreground);
-  --secondary: #475569;
-  --muted: #64748b;
-  --surface: #ffffff;
-  --surface-subtle: #eef3f9;
-  --border: #e2e8f0;
-  --control-border: #8492a6;
-  --accent: #2563eb;
-  --accent-strong: #1d4ed8;
-  --link: var(--accent-strong);
-  --accent-light: #e4edff;
+  --secondary: #c0d6ca;
+  --muted: #a0b8a9;
+  --surface: #0d1913;
+  --surface-subtle: #142820;
+  --border: #284336;
+  --control-border: #658779;
+  --emerald-deep: #003d26;
+  --emerald-mid: #008f50;
+  --accent: #00e59b;
+  --accent-strong: #74f8cc;
+  --link: var(--accent);
+  --accent-light: var(--emerald-deep);
   --focus: var(--accent);
-  --intelligence: #0d9488;
-  --intelligence-ink: #0f766e;
-  --intelligence-tint: #e9f7f4;
-  --success: #059669;
-  --success-ink: #047857;
-  --warning: #b45309;
-  --warning-tint: #fff5e6;
-  --destructive: #dc2626;
+  --intelligence: var(--accent);
+  --intelligence-ink: #9bf9d6;
+  --intelligence-tint: #103627;
+  --success-ink: var(--accent);
+  --warning: #fdba74;
+  --warning-tint: #332619;
+  --destructive: #fca5a5;
   --chart-primary: var(--accent);
-  --chart-secondary: var(--intelligence);
+  --chart-secondary: #c0d6ca;
   --radius-panel: 0.875rem;
-  --shadow-panel: 0 1px 2px rgb(11 22 40 / 5%), 0 8px 24px rgb(11 22 40 / 4%);
+  --shadow-panel: 0 1px 2px rgb(0 0 0 / 16%), 0 8px 24px rgb(0 0 0 / 12%);
   --motion-fast: 160ms;
   --motion-normal: 220ms;
   --ease-standard: cubic-bezier(.2, .75, .3, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not(:has(.landing-page)) {
-    color-scheme: dark;
-    --brand: #f1f5f9;
-    --background: #080f1c;
-    --surface: #101d30;
-    --surface-subtle: #16253a;
-    --border: #24334a;
-    --control-border: #7387a3;
-    --foreground: #f1f5f9;
-    --secondary: #cbd5e1;
-    --muted: #a5b4c8;
-    --link: #93b9ff;
-    --accent-light: #20365d;
-    --focus: var(--link);
-    --intelligence-ink: #5eead4;
-    --intelligence-tint: #112e35;
-    --success: #34d399;
-    --success-ink: #6ee7b7;
-    --warning: #fdba74;
-    --warning-tint: #332619;
-    --destructive: #fca5a5;
-    --chart-primary: var(--link);
-    --chart-secondary: #2dd4bf;
-  }
-}
-
 @theme inline {
   --color-background: var(--background);
   --color-primary: var(--accent);
-  --color-primary-foreground: #fff;
+  --color-primary-foreground: var(--background);
   --color-ring: var(--focus);
   --color-foreground: var(--foreground);
   --color-ink: var(--ink);
@@ -80,7 +54,6 @@
   --color-intelligence: var(--intelligence);
   --color-intelligence-ink: var(--intelligence-ink);
   --color-intelligence-tint: var(--intelligence-tint);
-  --color-success: var(--success);
   --color-success-ink: var(--success-ink);
   --color-warning: var(--warning);
   --color-warning-tint: var(--warning-tint);
@@ -122,7 +95,7 @@
     font-size: .875rem;
     font-weight: 650;
   }
-  .action-primary { background: var(--accent); color: white; }
+  .action-primary { background: var(--accent); color: var(--background); }
   .action-primary:hover { background: var(--accent-strong); }
   .action-secondary { border: 1px solid var(--border); background: var(--surface); color: var(--link); }
   .action-secondary:hover, .interactive-row:hover { background: var(--surface-subtle); }
@@ -165,17 +138,24 @@
 @keyframes ai-spin { to { transform: rotate(360deg); } }
 
 @layer components {
-  .landing-page {
-    --landing-display: Baskerville, "Iowan Old Style", Georgia, serif;
-    background: var(--background);
+  .landing-page { background: var(--background); }
+
+  .landing-field {
+    overflow: hidden;
+    background:
+      radial-gradient(ellipse at 65% 74%, color-mix(in srgb, var(--emerald-mid) 42%, transparent), transparent 48%),
+      linear-gradient(150deg, var(--background) 27%, var(--emerald-deep) 76%, var(--background));
   }
 
-  .landing-sea {
-    background: #c7e2f2 url("/trade/daylight-sea.webp") center / cover no-repeat;
-  }
-
-  .landing-wash {
-    background: linear-gradient(180deg, rgb(245 247 250 / 96%) 0%, rgb(245 247 250 / 91%) 40%, rgb(245 247 250 / 36%) 69%, transparent 100%);
+  .landing-field::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgb(116 248 204 / 9%) 1px, transparent 1px),
+      linear-gradient(90deg, rgb(116 248 204 / 9%) 1px, transparent 1px);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(ellipse at 65% 74%, #000, transparent 65%);
   }
 
   .landing-hero {
@@ -192,12 +172,12 @@
   }
 
   .landing-intro h1 {
-    max-width: 10ch;
+    max-width: 11ch;
     color: var(--brand);
-    font-family: var(--landing-display);
-    font-size: clamp(3.15rem, 8.6vw, 7.8rem);
-    font-weight: 400;
-    line-height: .88;
+    font-family: var(--font-sans);
+    font-size: clamp(2.75rem, 7.2vw, 6.8rem);
+    font-weight: 680;
+    line-height: .99;
     letter-spacing: -.058em;
     text-wrap: balance;
   }
@@ -242,12 +222,13 @@
 
   .landing-catalog {
     border-top: 1px solid var(--border);
-    background: linear-gradient(180deg, rgb(245 247 250 / 86%), var(--background) 92%);
+    background: linear-gradient(180deg, rgb(8 13 10 / 78%), var(--background) 92%);
   }
 
   .landing-catalog-title {
-    font-family: var(--landing-display);
-    font-size: clamp(2.6rem, 5.4vw, 4.65rem);
+    font-family: var(--font-sans);
+    font-size: clamp(2.1rem, 4.8vw, 3.8rem);
+    font-weight: 650;
     line-height: .98;
     letter-spacing: -.045em;
   }
@@ -260,8 +241,9 @@
   }
 
   .landing-category-title {
-    font-family: var(--landing-display);
-    font-size: 1.65rem;
+    font-family: var(--font-sans);
+    font-size: 1.3rem;
+    font-weight: 620;
     line-height: 1.12;
   }
 
@@ -274,8 +256,13 @@
       padding-bottom: 5rem;
     }
     .landing-intro { max-width: 48%; }
-    .landing-wash {
-      background: linear-gradient(90deg, rgb(245 247 250 / 98%) 0%, rgb(245 247 250 / 94%) 36%, rgb(245 247 250 / 30%) 68%, rgb(245 247 250 / 8%) 100%);
+    .landing-field {
+      background:
+        radial-gradient(ellipse at 76% 46%, color-mix(in srgb, var(--emerald-mid) 47%, transparent), transparent 44%),
+        linear-gradient(112deg, var(--background) 36%, var(--emerald-deep) 78%, var(--background));
+    }
+    .landing-field::before {
+      mask-image: radial-gradient(ellipse at 74% 48%, #000, transparent 70%);
     }
     .landing-poster {
       top: 48svh;

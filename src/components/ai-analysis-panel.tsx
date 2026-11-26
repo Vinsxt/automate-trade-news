@@ -51,7 +51,7 @@ export function AiAnalysisPanel({ endpoint, periodLabel, fallback, minimumLoadin
     <button type="button" aria-expanded={open} aria-controls={panelId} aria-disabled={loading || undefined}
       className="flex min-h-14 w-full cursor-pointer items-center gap-2.5 bg-intelligence-tint px-3 py-2.5 text-left text-sm font-semibold text-intelligence-ink hover:bg-intelligence/15 focus-visible:outline-offset-[-3px] aria-disabled:cursor-wait sm:px-4"
       onClick={request}>
-      <span className="grid size-8 shrink-0 place-items-center rounded-md bg-intelligence text-[#0b1628]"><Sparkles size={16} aria-hidden="true" /></span> Predict with AI
+      <span className="grid size-8 shrink-0 place-items-center rounded-md bg-intelligence text-primary-foreground"><Sparkles size={16} aria-hidden="true" /></span> Predict with AI
       <span className="ml-auto font-normal text-secondary">{periodLabel}</span>
       <ChevronDown size={16} className={`shrink-0 motion-safe:transition-transform ${open ? "rotate-180" : ""}`} aria-hidden="true" />
     </button>

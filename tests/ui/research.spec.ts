@@ -31,7 +31,6 @@ test("the landing page exposes the full catalog and keyboard navigation", async 
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByText("Indonesia highlighted")).toBeVisible();
   await expect(page.getByTestId("globe-scene").locator("canvas")).toHaveCount(0);
-  await expect(page.locator("video[src]")).toHaveCount(0);
   await page.keyboard.press("Tab");
   await expect(page.getByRole("link", { name: "Skip to content" })).toBeFocused();
   await expect(page.locator("#products li a")).toHaveCount(12);
