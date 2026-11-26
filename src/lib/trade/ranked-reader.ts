@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { createSupabaseReader } from "@/lib/supabase/reader";
 import type { RankedRelease } from "./ranked-snapshot";
 import type { PublishedPilotDashboard } from "./dashboard";
@@ -34,4 +35,15 @@ export async function readRankedExplanation(snapshotId: string, reporter: number
     .in("evidence_hash", hashes);
   if (error) throw new Error("Could not load the cached market explanation");
   return hashes.map(hash => data.find(row => row.evidence_hash === hash)?.findings).find(Boolean);
+}
+
+export async function readRankedImportSeries(snapshotId: string) {
+  const { data, error } = await createSupabaseReader().from("trade_ranked_details")
+    .select("reporter_code,imports:dashboard->imports").eq("snapshot_id", snapshotId);
+  if (error) throw new Error("Could not load published import histories");
+  const rows = z.array(z.object({
+    reporter_code: z.number().int(),
+    imports: z.array(z.object({ period: z.string(), importValue: z.number().nullable() })).nullable(),
+  })).parse(data);
+  return new Map(rows.map(row => [row.reporter_code, row.imports ?? []]));
 }

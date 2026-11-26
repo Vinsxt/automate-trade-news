@@ -1,18 +1,42 @@
-import { createRankedGemini, selectRankedFindings } from "./gemini-ranked";
+import { createRankedGemini, selectRankedFindings } from "../src/lib/gemini/ranked";
 import { setTimeout } from "node:timers/promises";
 import { createSupabaseAdminClient } from "../src/lib/supabase/admin";
+import { BEGINNER_BRIEF_VERSION, beginnerBriefEvidence, traceBeginnerBrief } from "../src/lib/trade/beginner-brief";
+import { beginnerMarket } from "../src/lib/trade/beginner-market";
+import { runCoffeeAnalysis } from "../src/lib/ai/run-coffee-analysis";
 import { PRODUCTS } from "../src/lib/trade/cohort";
-import { EXPLANATION_MODEL, EXPLANATION_MODELS, EXPLANATION_VERSION, rankingEvidence, traceBatch, traceFindings } from "../src/lib/trade/ranked-explanation";
+import type { PublishedPilotDashboard } from "../src/lib/trade/dashboard";
+import { EXPLANATION_MODEL, EXPLANATION_MODELS, EXPLANATION_VERSION, rankingEvidence, traceBatch, traceFindings, type ExplanationModel } from "../src/lib/trade/ranked-explanation";
 import type { RankedRelease } from "../src/lib/trade/ranked-snapshot";
 import { assertRankedStorageHeadroom } from "./ranked-storage";
 
+type PreparedEvidence = ReturnType<typeof rankingEvidence> & {
+  reporter: number;
+  cacheHashes: string[];
+  validate: (ids: unknown) => void;
+};
+
 async function main() {
-  const [capArg = "1", product, ...extra] = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const beginner = args[0] === "--beginner";
+  const coffee = args[0] === "--coffee-outlook";
+  const [capArg = coffee ? process.env.COFFEE_AI_DAILY_CAP ?? "1" : "1", requestedProduct, ...extra] = beginner || coffee ? args.slice(1) : args;
+  const product = requestedProduct;
   const cap = Number(capArg);
   const model = EXPLANATION_MODELS.find(name => name === (process.env.TRADE_EXPLANATION_MODEL || EXPLANATION_MODEL));
   if (!model) throw new Error("Unsupported Gemini model");
-  if (!Number.isInteger(cap) || cap < 1 || cap > 20 || extra.length || (product && !Object.hasOwn(PRODUCTS, product))) {
-    throw new Error("Usage: npm run generate:explanations -- [1–20 requests per Pacific day] [HS6]");
+  if (!Number.isInteger(cap) || cap < 1 || cap > 20 || extra.length || (coffee && requestedProduct) || (product && !Object.hasOwn(PRODUCTS, product))) {
+    throw new Error("Usage: npm run generate:explanations -- [--beginner] [1–20 requests per Pacific day] [HS6], or --coffee-outlook [daily cap]");
+  }
+  if (coffee) {
+    const analysis = await runCoffeeAnalysis(undefined, cap);
+    if ("status" in analysis || analysis.result.state !== "current") {
+      console.error("Green coffee AI analysis was not published. See the cache and generation logs.");
+      process.exitCode = 1;
+    } else {
+      console.log({ state: analysis.result.state, generatedAt: analysis.result.generatedAt, coverage: analysis.result.coverage });
+    }
+    return;
   }
   const apiKey = process.env.GEMINI_API_KEY?.trim();
   if (!apiKey) throw new Error("Gemini credentials are unavailable");
@@ -28,10 +52,27 @@ async function main() {
         .order("published_at", { ascending: false }).order("id").limit(1).maybeSingle();
       if (error || !release) throw new Error("Published product snapshot unavailable");
       const ranking = release.ranked_summary as RankedRelease;
-      const prepared = ranking.rankings.map(result => ({
-        reporter: result.reporter, ...rankingEvidence(result, model),
-        cacheHashes: EXPLANATION_MODELS.map(name => rankingEvidence(result, name).hash),
-      }));
+      const details = new Map<number, PublishedPilotDashboard>();
+      if (beginner) {
+        const { data, error } = await db.from("trade_ranked_details")
+          .select("reporter_code,dashboard").eq("snapshot_id", release.id);
+        if (error) throw new Error("Published market details unavailable");
+        for (const row of data) details.set(row.reporter_code, row.dashboard as PublishedPilotDashboard);
+      }
+      const prepared = ranking.rankings.map<PreparedEvidence>(result => {
+        const market = beginner ? beginnerMarket(ranking, result, details.get(result.reporter)) : null;
+        const makeEvidence = (provider: ExplanationModel) => market ? beginnerBriefEvidence(market, provider) : rankingEvidence(result, provider);
+        const beginnerEvidence = market ? beginnerBriefEvidence(market, model) : null;
+        const evidence = beginnerEvidence ?? rankingEvidence(result, model);
+        return {
+          reporter: result.reporter, ...evidence,
+          cacheHashes: EXPLANATION_MODELS.map(name => name === model ? evidence.hash : makeEvidence(name).hash),
+          validate(ids: unknown) {
+            if (beginnerEvidence) traceBeginnerBrief(beginnerEvidence, ids);
+            else traceFindings(evidence.findings, ids);
+          },
+        };
+      });
       const candidates = prepared.filter(row => row.findings.length);
       counts.fallback += prepared.length - candidates.length;
       if (!candidates.length) continue;
@@ -41,8 +82,8 @@ async function main() {
       if (cacheError) throw new Error("Explanation cache unavailable");
       const cached = new Map(cache.map(row => [row.evidence_hash, row]));
       const rows = [];
-      const misses = [];
-      const entry = (row: typeof candidates[number], findings: string[], evidenceHash = row.hash) => ({
+      const misses: PreparedEvidence[] = [];
+      const entry = (row: PreparedEvidence, findings: string[], evidenceHash = row.hash) => ({
         snapshot_id: release.id, reporter_code: row.reporter, evidence_hash: evidenceHash, findings,
       });
       for (const row of candidates) {
@@ -51,7 +92,7 @@ async function main() {
           misses.push(row);
           continue;
         }
-        traceFindings(row.findings, match.findings);
+        row.validate(match.findings);
         if (match.snapshot_id !== release.id) rows.push(entry(row, match.findings, match.evidence_hash));
         counts.cached++;
       }
@@ -66,7 +107,7 @@ async function main() {
       const delay = lastRequestAt + 30_000 - Date.now();
       if (delay > 0) await setTimeout(delay);
       const { data: attempt, error: reserveError } = await db.rpc("reserve_trade_explanation_attempt", {
-        release_id: release.id, provider_model: model, generation: EXPLANATION_VERSION,
+        release_id: release.id, provider_model: model, generation: beginner ? BEGINNER_BRIEF_VERSION : EXPLANATION_VERSION,
         hashes: misses.map(row => row.hash), daily_cap: cap,
       });
       if (reserveError) throw new Error("Could not reserve a Gemini request");
@@ -80,7 +121,7 @@ async function main() {
       let status = "provider_error";
       let responseText: string | undefined;
       try {
-        responseText = await selectRankedFindings(ai, misses, model);
+        responseText = await selectRankedFindings(ai, misses, model, beginner ? "beginner" : "ranked");
       } catch (error) {
         counts.providerErrors++;
         const status = (error as { status?: unknown } | null)?.status;
@@ -95,7 +136,9 @@ async function main() {
       let selections: string[][] | undefined;
       if (responseText !== undefined) {
         try {
-          selections = traceBatch(misses, responseText);
+          const approved = traceBatch(misses, responseText);
+          approved.forEach((ids, index) => misses[index].validate(ids));
+          selections = approved;
           status = "passed";
         } catch {
           status = "invalid";

@@ -14,7 +14,9 @@ product scope, schema semantics, or calculation definitions.
   Validate selectors and keep ranking, detail, quality and explanations on one snapshot.
 - Restrict Comtrade, privileged database writes and Gemini to the operator-run batch.
   Precompute in TypeScript using the existing analytics and validation modules.
-  The legacy ingestion and AI POST URLs return HTTP 410.
+  The green coffee outlook is an exception. Its dedicated Next.js POST route
+  may generate on an exact cache miss using the shared operator quota. The
+  legacy ingestion and AI POST URLs return HTTP 410.
 - Get approval before adding a separate backend or Python service, microservices,
   an ORM, new infrastructure such as Redis or a vector database, native apps,
   an additional AI provider, or a paid data provider.
@@ -41,7 +43,8 @@ product scope, schema semantics, or calculation definitions.
 ## Security and verification
 
 - Authorize pilot admin operations server-side. In the target deployment, grant the
-  reader access only to published results. Keep batch secrets out of the web runtime.
+  reader access only to published results. Keep batch secrets out of the web runtime except for the server-only
+  credentials required by the green coffee outlook.
   Apply and test RLS if user-owned records are introduced.
 - Keep raw upstream errors, sensitive headers, and stack traces out of client responses
   and logs. Limit collection of personal information.

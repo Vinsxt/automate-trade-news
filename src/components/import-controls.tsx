@@ -77,29 +77,29 @@ export function ImportControls({ explanationPeriod }: { explanationPeriod: strin
   }
 
   return (
-    <aside className="border border-stone-300 bg-[#f7f6f1] p-5 lg:sticky lg:top-6">
-      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-emerald-800">Data operations</p>
-      <h2 id="import-title" className="mt-2 text-xl font-semibold text-stone-950">Load a year</h2>
-      <p className="mt-2 text-sm leading-6 text-stone-600">
+    <aside className="border border-line bg-surface-subtle p-5 lg:sticky lg:top-6">
+      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-brand-strong">Data operations</p>
+      <h2 id="import-title" className="mt-2 text-xl font-semibold text-ink">Load a year</h2>
+      <p className="mt-2 text-sm leading-6 text-secondary">
         Fetch India’s partner-level imports for one year. A single-year request keeps the pilot within public preview limits.
       </p>
 
       <form action="/api/admin/ingest" method="post" aria-labelledby="import-title" className="mt-5 space-y-4" onSubmit={submitImport}>
         <div>
-          <label htmlFor="period" className="mb-1.5 block text-sm font-medium text-stone-800">Annual period</label>
+          <label htmlFor="period" className="mb-1.5 block text-sm font-medium text-ink">Annual period</label>
           <select
             id="period"
             name="period"
             value={period}
             onChange={(event) => setPeriod(event.target.value)}
-            className="min-h-12 w-full border border-stone-400 bg-white px-3 py-2.5 text-base text-stone-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800"
+            className="min-h-12 w-full border border-control bg-surface px-3 py-2.5 text-base text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           >
             {YEARS.map((year) => <option key={year} value={year}>{year}</option>)}
           </select>
         </div>
         <div>
-          <label htmlFor="admin-token" className="mb-1.5 block text-sm font-medium text-stone-800">Local admin token</label>
-          <p id="token-help" className="mb-2 text-xs leading-5 text-stone-600">Use the INGEST_ADMIN_TOKEN value in your local .env.local file.</p>
+          <label htmlFor="admin-token" className="mb-1.5 block text-sm font-medium text-ink">Local admin token</label>
+          <p id="token-help" className="mb-2 text-xs leading-5 text-secondary">Use the INGEST_ADMIN_TOKEN value in your local .env.local file.</p>
           <input
             id="admin-token"
             type="password"
@@ -110,49 +110,49 @@ export function ImportControls({ explanationPeriod }: { explanationPeriod: strin
             value={token}
             onChange={(event) => setToken(event.target.value)}
             placeholder="Paste INGEST_ADMIN_TOKEN from .env.local"
-            className="min-h-12 w-full border border-stone-400 bg-white px-3 py-2.5 text-base text-stone-900 placeholder:text-stone-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800"
+            className="min-h-12 w-full border border-control bg-surface px-3 py-2.5 text-base text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
           />
         </div>
         <button
           type="submit"
           disabled={busy || analyzing}
-          className="w-full bg-emerald-900 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 disabled:cursor-not-allowed disabled:bg-stone-400"
+          className="w-full bg-primary px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-55"
         >
           {busy ? "Fetching from UN Comtrade…" : `Import ${period}`}
         </button>
         {message && (
-          <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm leading-5 ${message.kind === "error" ? "text-red-800" : "text-emerald-900"}`}>
+          <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm leading-5 ${message.kind === "error" ? "text-destructive" : "text-success-ink"}`}>
             {message.text}
           </p>
         )}
       </form>
-      <div className="mt-4 border-t border-stone-300 pt-4">
+      <div className="mt-4 border-t border-line pt-4">
         <button
           type="button"
           onClick={explainLatest}
           disabled={busy || analyzing || !explanationPeriod}
-          className="min-h-11 w-full border border-emerald-900 px-4 py-2.5 text-sm font-semibold text-emerald-950 hover:bg-emerald-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
+          className="min-h-11 w-full border border-control px-4 py-2.5 text-sm font-semibold text-brand-strong hover:bg-brand-light focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:cursor-not-allowed disabled:opacity-60"
         >
           {analyzing ? "Generating explanation…" : explanationPeriod ? `Explain ${explanationPeriod} market data` : "No market data to explain"}
         </button>
         <div className="mt-3 space-y-2" aria-live="polite">
-          {analysisError && <p role="alert" className="text-sm leading-5 text-red-800">{analysisError}</p>}
+          {analysisError && <p role="alert" className="text-sm leading-5 text-destructive">{analysisError}</p>}
           {explanation && (
-            <section className="border border-stone-300 bg-white p-4" aria-label="AI explanation">
-              <p className="text-xs font-semibold uppercase tracking-wide text-emerald-800">Gemini-selected findings</p>
-              <h3 className="mt-2 font-semibold text-stone-950">{explanation.headline}</h3>
-              <p className="mt-2 text-sm leading-5 text-stone-700">{explanation.summary}</p>
+            <section className="border border-line bg-surface p-4" aria-label="AI explanation">
+              <p className="text-xs font-semibold uppercase tracking-wide text-intelligence-ink">Gemini-selected findings</p>
+              <h3 className="mt-2 font-semibold text-ink">{explanation.headline}</h3>
+              <p className="mt-2 text-sm leading-5 text-secondary">{explanation.summary}</p>
               {explanation.observations.length > 0 && (
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-5 text-stone-700">
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-sm leading-5 text-secondary">
                   {explanation.observations.map((observation, index) => <li key={index}>{observation}</li>)}
                 </ul>
               )}
-              <p className="mt-3 border-t border-stone-200 pt-2 text-xs leading-5 text-stone-500">{explanation.caveat}</p>
+              <p className="mt-3 border-t border-line pt-2 text-xs leading-5 text-muted">{explanation.caveat}</p>
             </section>
           )}
         </div>
       </div>
-      <p className="mt-4 border-t border-stone-300 pt-3 text-xs leading-5 text-stone-500">
+      <p className="mt-4 border-t border-line pt-3 text-xs leading-5 text-secondary">
         Explanations send calculated trade evidence to Gemini. Enter the token only in your trusted workspace.
       </p>
     </aside>
